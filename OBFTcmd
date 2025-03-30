@@ -1508,7 +1508,7 @@ local commands = {
     "emitteroff/ef",
     "reset/re",
     "serverhop/shop",
-    "fov <mum>",
+    "fov <num>",
     "walkspeed/ws <num>",
     "resetwalkspeed/resetws",
     "jumppower/jp <num>",
