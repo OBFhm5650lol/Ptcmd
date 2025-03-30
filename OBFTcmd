@@ -1,164 +1,4 @@
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
-local UserInputService = game:GetService("UserInputService")
 
--- Verify execution context
-if not RunService:IsClient() and not RunService:IsServer() then
-    warn("Script must run in either client or server context")
-    return
-end
-
--- Safe physics optimization (server-side only)
-if RunService:IsServer() then
-    pcall(function()
-        settings().Physics.AllowSleep = true
-        settings().Physics.ThrottleAdjustTime = 5
-    end)
-end
-
--- Core optimization function
-local function applyOptimizations()
-    -- Lighting optimizations (removed fog completely)
-    pcall(function()
-        Lighting.GlobalShadows = false
-        Lighting.Outlines = false
-        Lighting.Brightness = 2
-        Lighting.FogEnd = 1000000000000000 -- Effectively disables fog
-        Lighting.FogStart = 0
-    end)
-
-    -- Disable expensive effects safely
-    for _, child in ipairs(Lighting:GetChildren()) do
-        pcall(function()
-            if child:IsA("PostEffect") then
-                child.Enabled = false
-            end
-        end)
-    end
-
-    -- Terrain optimizations
-    local terrain = Workspace:FindFirstChildOfClass("Terrain")
-    if terrain then
-        pcall(function()
-            terrain.Decoration = false
-            terrain.WaterReflectance = 0
-            terrain.WaterWaveSize = 0
-            terrain.WaterWaveSpeed = 0
-        end)
-    end
-
-    -- BasePart optimizations with safety checks
-    local function optimizePart(part)
-        pcall(function()
-            if part:IsA("BasePart") then
-                part.CastShadow = false
-                part.Massless = true
-                part.CanQuery = false
-                part.CanTouch = false
-                
-                -- Preserve collision for character parts
-                local humanoid = part:FindFirstAncestorOfClass("Model") and 
-                               part:FindFirstAncestorOfClass("Model"):FindFirstChildOfClass("Humanoid")
-                if not humanoid then
-                end
-            end
-        end)
-    end
-
-    -- Optimize existing instances
-    for _, instance in ipairs(Workspace:GetDescendants()) do
-        if instance:IsA("BasePart") then
-            optimizePart(instance)
-        elseif instance:IsA("ParticleEmitter") or instance:IsA("Fire") or instance:IsA("Smoke") then
-            pcall(function() instance.Enabled = false end)
-        end
-    end
-
-    -- Optimize new instances
-    Workspace.DescendantAdded:Connect(function(instance)
-        if instance:IsA("BasePart") then
-            optimizePart(instance)
-        elseif instance:IsA("ParticleEmitter") or instance:IsA("Fire") or instance:IsA("Smoke") then
-            pcall(function() instance.Enabled = false end)
-        end
-    end)
-end
-
--- Safe character optimization
-local function optimizeCharacter(character)
-    pcall(function()
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-            humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-            humanoid.AutoRotate = true
-            humanoid.AutoJumpEnabled = true
-        end
-
-        for _, part in ipairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                pcall(function()
-                    part.CastShadow = false
-                    part.Massless = true
-                end)
-            end
-        end
-    end)
-end
-
--- Player connection handling
-local function playerAdded(player)
-    player.CharacterAdded:Connect(optimizeCharacter)
-    if player.Character then
-        optimizeCharacter(player.Character)
-    end
-end
-
--- Initialize for all players
-for _, player in ipairs(Players:GetPlayers()) do
-    pcall(function() playerAdded(player) end)
-end
-Players.PlayerAdded:Connect(playerAdded)
-
--- Dynamic performance adjustment
-if RunService:IsClient() then
-    local lastFPSUpdate = time()
-    local currentFPS = 60
-
-    RunService.RenderStepped:Connect(function()
-        if time() - lastFPSUpdate >= 1 then
-            currentFPS = math.floor(1 / RunService.RenderStepped:Wait())
-            lastFPSUpdate = time()
-            
-            pcall(function()
-                if currentFPS < 30 then
-                    Lighting.QualityLevel = Enum.QualityLevel.Level01
-                elseif currentFPS < 45 then
-                    Lighting.QualityLevel = Enum.QualityLevel.Level05
-                else
-                    Lighting.QualityLevel = Enum.QualityLevel.Level10
-                end
-            end)
-        end
-    end)
-
-    -- Window focus optimization
-    UserInputService.WindowFocusReleased:Connect(function()
-        pcall(function() Lighting.QualityLevel = Enum.QualityLevel.Level01 end)
-    end)
-
-    UserInputService.WindowFocused:Connect(function()
-        pcall(function() Lighting.QualityLevel = Enum.QualityLevel.Level10 end)
-    end)
-end
-
--- Initial optimization
-applyOptimizations()
-
-print("CPU Optimization Active - Performance Enhanced")
-task.wait()
 -- Services
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
@@ -172,9 +12,9 @@ local WATERMARK_TEXT = "Made By hmmm5650"
 local INTRO_DURATION = 8 -- Duration of the entire intro animation in seconds
 local PARTICLE_COUNT = 55 -- Increased particle count for richer background
 local PARTICLE_COLORS = {
-    Color3.fromRGB(0, 255, 0),
-    Color3.fromRGB(0, 200, 100),
-    Color3.fromRGB(50, 255, 50)
+    Color3.fromRGB(0, 100, 255),  -- Blue particles
+    Color3.fromRGB(0, 150, 255),
+    Color3.fromRGB(50, 200, 255)
 }
 
 -- Preload assets to prevent lag
@@ -194,7 +34,7 @@ screenGui.DisplayOrder = 999 -- Ensure it's on top
 local background = Instance.new("Frame")
 background.Name = "Background"
 background.Size = UDim2.new(1, 0, 1, 0)
-background.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
+background.BackgroundColor3 = Color3.fromRGB(10, 10, 30)  -- Dark blue background
 background.BackgroundTransparency = 1
 background.ZIndex = 0
 background.Parent = screenGui
@@ -202,8 +42,8 @@ background.Parent = screenGui
 -- Create gradient overlay for background
 local bgGradient = Instance.new("UIGradient")
 bgGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 20, 30)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 25))
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 20, 50)),  -- Dark blue gradient
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 40))
 })
 bgGradient.Rotation = 90
 bgGradient.Transparency = NumberSequence.new(0.7)
@@ -253,18 +93,18 @@ textLabel.Parent = screenGui
 -- Create advanced text effects
 local textShadow = textLabel:Clone()
 textShadow.Name = "TextShadow"
-textShadow.TextColor3 = Color3.fromRGB(0, 100, 0)
+textShadow.TextColor3 = Color3.fromRGB(0, 100, 200)  -- Blue shadow
 textShadow.TextTransparency = 0.9
 textShadow.Position = UDim2.new(0.5, 4, 0.5, 4) -- Offset for shadow
 textShadow.ZIndex = 2
 textShadow.Parent = screenGui
 
--- Create gradient underlay for text with animation potential
+-- Create gradient underlay for text (KEEPING ORIGINAL GRADIENT FOR TITLE)
 local gradient = Instance.new("UIGradient")
 gradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 150)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 200, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 100, 255))
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 150)),  -- Original green
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 200, 255)),  -- Original teal
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 100, 255))  -- Original purple
 })
 gradient.Rotation = 0
 gradient.Enabled = false
@@ -277,7 +117,7 @@ watermarkLabel.Text = WATERMARK_TEXT
 watermarkLabel.Size = UDim2.new(0.3, 0, 0.05, 0)
 watermarkLabel.Position = UDim2.new(0.5, 0, 0.85, 0)
 watermarkLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-watermarkLabel.TextColor3 = Color3.new(0.7, 0.7, 0.7)
+watermarkLabel.TextColor3 = Color3.fromRGB(100, 180, 255)  -- Light blue watermark
 watermarkLabel.BackgroundTransparency = 1
 watermarkLabel.Font = Enum.Font.GothamMedium
 watermarkLabel.TextSize = 18
@@ -293,10 +133,10 @@ blurEffect.Parent = Lighting
 
 local colorCorrection = Instance.new("ColorCorrectionEffect")
 colorCorrection.Name = "CinematicColor"
-colorCorrection.TintColor = Color3.fromRGB(235, 214, 144)
+colorCorrection.TintColor = Color3.fromRGB(180, 200, 255)  -- Cool blue tint
 colorCorrection.Brightness = -0.1
 colorCorrection.Contrast = 0.1
-colorCorrection.Saturation = -0.3
+colorCorrection.Saturation = -0.1
 colorCorrection.Parent = Lighting
 
 local dofEffect = Instance.new("DepthOfFieldEffect")
@@ -368,7 +208,7 @@ local shadowFadeInGoals = {
 
 local holdGoals = {
     Rotation = 5,
-    TextColor3 = Color3.fromRGB(200, 240, 255)
+    TextColor3 = Color3.fromRGB(200, 240, 255)  -- Light blue text during hold
 }
 
 local fadeOutGoals = {
@@ -382,7 +222,7 @@ local blurOutGoals = {Size = 0}
 local watermarkFadeInGoals = {
     Position = UDim2.new(0.5, 0, 0.85, 0), 
     TextTransparency = 0.2,
-    TextColor3 = Color3.fromRGB(0, 255, 150)
+    TextColor3 = Color3.fromRGB(0, 150, 255)  -- Blue watermark
 }
 
 local watermarkFadeOutGoals = {
@@ -898,7 +738,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (v0.8)"
+collapsedLabel.Text = "TCmd (v0.9)"
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -1171,6 +1011,109 @@ local function UnFly()
     character.Animate.Disabled = false
     humanoid.PlatformStand = false
 end
+
+-- Drop All Tools Function (DAT)
+local function DAT()
+    -- Get the player's character and backpack
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local backpack = player:FindFirstChild("Backpack")
+    
+    if not backpack then
+        warn("Backpack not found!")
+        return
+    end
+    
+    -- Get all tools in the backpack
+    local tools = {}
+    for _, item in ipairs(backpack:GetChildren()) do
+        if item:IsA("Tool") then
+            table.insert(tools, item)
+        end
+    end
+    
+    -- Drop each tool
+    for _, tool in ipairs(tools) do
+        -- Equip the tool first (necessary to drop it)
+        tool.Parent = character
+        task.wait(0.1) -- Small delay to ensure tool is equipped
+        
+        -- Drop the tool
+        tool.Parent = workspace
+        tool:FindFirstChild("Handle").Anchored = false -- Ensure it can fall
+    end
+    
+    print("Dropped " .. #tools .. " tools")
+end
+
+-- AAT (Activate All Tools) Script
+local function AAT()
+    -- Get the local player
+    local player = game:GetService("Players").LocalPlayer
+    if not player then return end
+    
+    -- Get the player's backpack and character
+    local backpack = player:FindFirstChild("Backpack")
+    local character = player.Character or player.CharacterAdded:Wait()
+    
+    -- Wait for tools to load if needed
+    if not backpack then
+        backpack = player:WaitForChild("Backpack")
+    end
+    
+    -- Function to activate a tool
+    local function activateTool(tool)
+        if tool:IsA("Tool") then
+            -- Equip the tool if it's in the backpack
+            if tool.Parent == backpack then
+                tool.Parent = character
+                wait(0.1) -- Small delay for equip animation
+            end
+            
+            -- Activate the tool
+            local handle = tool:FindFirstChild("Handle")
+            if handle then
+                local remote = handle:FindFirstChildOfClass("RemoteEvent") or 
+                              tool:FindFirstChildOfClass("RemoteEvent") or
+                              handle:FindFirstChildOfClass("RemoteFunction") or
+                              tool:FindFirstChildOfClass("RemoteFunction")
+                
+                if remote then
+                    -- Try to activate with the remote
+                    pcall(function()
+                        if remote:IsA("RemoteEvent") then
+                            remote:FireServer("activate")
+                        elseif remote:IsA("RemoteFunction") then
+                            remote:InvokeServer("activate")
+                        end
+                    end)
+                else
+                    -- Try to use the tool's built-in activation
+                    pcall(function()
+                        tool:Activate()
+                    end)
+                end
+            end
+        end
+    end
+    
+    -- Activate all tools in the backpack
+    for _, tool in ipairs(backpack:GetChildren()) do
+        activateTool(tool)
+    end
+    
+    -- Activate all tools currently equipped
+    for _, tool in ipairs(character:GetChildren()) do
+        activateTool(tool)
+    end
+    
+    print("AAT: Attempted to activate all tools.")
+end
+
+-- Create the AAT function in the global namespace
+getgenv().AAT = AAT
+
+-- You can now call AAT() in the console or in other scripts
 
 -- hitbox Variable
 local hitboxEnabled = false
@@ -1590,6 +1533,8 @@ local commands = {
     "jumppower/jp <num>",
     "tpto <plr>",
     "grav <num>",
+    "activatealltools/aat",
+    "dropalltools/dat",
     "infjump - fly by jumping",
     "bringunachored/bring ua",
     "hitbox",
@@ -1637,7 +1582,7 @@ local commands = {
     "blackhole/bh",
     "disableblackhole/dbh",
     "telekinesis/tk",
-    "jerkoff [R6]",
+    "susgui/ss",
     "f3x/fex",
     "winobby",
     "floatparts",
@@ -3561,7 +3506,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "CmdPanel Started:\nSearch For A Command"
+                result = "Command panel Started:\nSearch For A Command"
             end
         elseif command:sub(1, 15) == "bh" then
             local luaCode = command:sub(16)
@@ -3972,6 +3917,84 @@ end
             else
                 result = "Stopped Flying:\n"
             end
+        elseif command:sub(1, 15) == "susgui" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/TmcdSusGu182-hi/refs/heads/main/GuiLol", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Stopped Flying:\n"
+            end
+        elseif command:sub(1, 15) == "ss" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/TmcdSusGu182-hi/refs/heads/main/GuiLol", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Stopped Flying:\n"
+            end
+        elseif command:sub(1, 15) == "aat" then
+            local luaCode = command:sub(16)
+            local func, err = AAT()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Activated All Tools:\n"
+            end
+        elseif command:sub(1, 15) == "activatealltools" then
+            local luaCode = command:sub(16)
+            local func, err = AAT()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Activated All Tools:\n"
+            end
+        elseif command:sub(1, 15) == "dat" then
+            local luaCode = command:sub(16)
+            local func, err = DAT()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Dropped All Tools:\n"
+            end
+        elseif command:sub(1, 15) == "dropalltools" then
+            local luaCode = command:sub(16)
+            local func, err = DAT()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Dropped All Tools:\n"
+            end
         elseif command:sub(1, 15) == "aimlock" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/AimAssistRael/refs/heads/main/Aimlock"))()
@@ -4335,19 +4358,6 @@ end
                 end
             else
                 result = "NamelessAdminV2IsActive:\n"
-            end
-        elseif command:sub(1, 15) == "jerkoff" then
-            local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet("https://pastefy.app/wa3v2Vgm/raw"))()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "JerkTool:\nWhat can go wrong"
             end
         elseif command:sub(1, 15) == "telekinesis" then
             local luaCode = command:sub(16)
