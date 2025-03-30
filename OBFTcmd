@@ -1181,12 +1181,47 @@ local hitboxLoop
 local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
 
+-- Store original properties for restoration
+local originalProperties = {
+    HumanoidRootPart = {},
+    Head = {}
+}
+
 local function playerIsValidTarget(player)
     return (player ~= localPlayer) and ((player.Team ~= localPlayer.Team) or (player.Team == nil))
 end
 
+local function storeOriginalProperties(character)
+    if not character then return end
+    
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if root and not originalProperties.HumanoidRootPart[character] then
+        originalProperties.HumanoidRootPart[character] = {
+            Size = root.Size,
+            Transparency = root.Transparency,
+            BrickColor = root.BrickColor,
+            Material = root.Material,
+            CanCollide = root.CanCollide,
+            Massless = if root:IsA("BasePart") then root.Massless else nil
+        }
+    end
+    
+    local head = character:FindFirstChild("Head")
+    if head and not originalProperties.Head[character] then
+        originalProperties.Head[character] = {
+            Size = head.Size,
+            Transparency = head.Transparency,
+            BrickColor = head.BrickColor,
+            Material = head.Material,
+            CanCollide = head.CanCollide,
+            Massless = if head:IsA("BasePart") then head.Massless else nil
+        }
+    end
+end
+
 local function applyHitbox(character)
     if not character then return end
+    storeOriginalProperties(character)
     
     local root = character:FindFirstChild("HumanoidRootPart")
     if root then
@@ -1195,6 +1230,9 @@ local function applyHitbox(character)
         root.BrickColor = BrickColor.new("Dark red")
         root.Material = Enum.Material.Neon
         root.CanCollide = false
+        if root:IsA("BasePart") then
+            root.Massless = true
+        end
     end
     
     local head = character:FindFirstChild("Head")
@@ -1204,7 +1242,9 @@ local function applyHitbox(character)
         head.BrickColor = BrickColor.new("Bright red")
         head.Material = Enum.Material.Neon
         head.CanCollide = false
-        head.Massless = true
+        if head:IsA("BasePart") then
+            head.Massless = true
+        end
     end
 end
 
@@ -1212,22 +1252,31 @@ local function resetHitbox(character)
     if not character then return end
     
     local root = character:FindFirstChild("HumanoidRootPart")
-    if root then
-        root.Size = Vector3.new(2, 2, 1)
-        root.Transparency = 1
-        root.BrickColor = BrickColor.new("Medium stone grey")
-        root.Material = Enum.Material.Plastic
-        root.CanCollide = true
+    if root and originalProperties.HumanoidRootPart[character] then
+        local props = originalProperties.HumanoidRootPart[character]
+        root.Size = props.Size
+        root.Transparency = props.Transparency
+        root.BrickColor = props.BrickColor
+        root.Material = props.Material
+        root.CanCollide = props.CanCollide
+        if root:IsA("BasePart") then
+            root.Massless = props.Massless
+        end
+        originalProperties.HumanoidRootPart[character] = nil
     end
     
     local head = character:FindFirstChild("Head")
-    if head then
-        head.Size = Vector3.new(2, 1, 1)
-        head.Transparency = 1
-        head.BrickColor = BrickColor.new("Medium stone grey")
-        head.Material = Enum.Material.Plastic
-        head.CanCollide = true
-        head.Massless = false
+    if head and originalProperties.Head[character] then
+        local props = originalProperties.Head[character]
+        head.Size = props.Size
+        head.Transparency = props.Transparency
+        head.BrickColor = props.BrickColor
+        head.Material = props.Material
+        head.CanCollide = props.CanCollide
+        if head:IsA("BasePart") then
+            head.Massless = props.Massless
+        end
+        originalProperties.Head[character] = nil
     end
 end
 
@@ -1250,6 +1299,13 @@ end
 function hitboxeson()
     if hitboxEnabled then return end
     hitboxEnabled = true
+    
+    -- Store original properties first
+    for _, player in ipairs(Players:GetPlayers()) do
+        if playerIsValidTarget(player) and player.Character then
+            storeOriginalProperties(player.Character)
+        end
+    end
     
     updateAllHitboxes()
     
@@ -1275,23 +1331,43 @@ end
 
 -- Player connection handling
 local function handlePlayer(player)
+    if player == localPlayer then return end
+    
     player.CharacterAdded:Connect(function(character)
-        task.wait(1)
+        task.wait(1) -- Wait for character to fully load
         if hitboxEnabled and playerIsValidTarget(player) then
+            storeOriginalProperties(character)
             applyHitbox(character)
         end
     end)
     
     if player.Character and hitboxEnabled and playerIsValidTarget(player) then
+        storeOriginalProperties(player.Character)
         applyHitbox(player.Character)
     end
+    
+    player.CharacterRemoving:Connect(function(character)
+        -- Clean up stored properties when player leaves
+        originalProperties.HumanoidRootPart[character] = nil
+        originalProperties.Head[character] = nil
+    end)
 end
 
+-- Initialize for existing players
 for _, player in ipairs(Players:GetPlayers()) do
     handlePlayer(player)
 end
 
+-- Set up for new players
 Players.PlayerAdded:Connect(handlePlayer)
+
+-- Clean up when player leaves
+Players.PlayerRemoving:Connect(function(player)
+    if player.Character then
+        originalProperties.HumanoidRootPart[player.Character] = nil
+        originalProperties.Head[player.Character] = nil
+    end
+end)
 
 -- Cmdspanel
 local Players = game:GetService("Players")
@@ -1508,7 +1584,7 @@ local commands = {
     "emitteroff/ef",
     "reset/re",
     "serverhop/shop",
-    "fov <num>",
+    "fov <mum>",
     "walkspeed/ws <num>",
     "resetwalkspeed/resetws",
     "jumppower/jp <num>",
