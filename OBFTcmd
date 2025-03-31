@@ -1,4 +1,3 @@
-
 -- Services
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
@@ -10,7 +9,7 @@ local ContentProvider = game:GetService("ContentProvider")
 local INTRO_TEXT = "TCMD"
 local WATERMARK_TEXT = "Made By hmmm5650"
 local INTRO_DURATION = 8 -- Duration of the entire intro animation in seconds
-local PARTICLE_COUNT = 55 -- Increased particle count for richer background
+local PARTICLE_COUNT = 60 -- Increased particle count for richer background
 local PARTICLE_COLORS = {
     Color3.fromRGB(0, 100, 255),  -- Blue particles
     Color3.fromRGB(0, 150, 255),
@@ -20,7 +19,7 @@ local PARTICLE_COLORS = {
 -- Preload assets to prevent lag
 ContentProvider:PreloadAsync({
     "rbxassetid://11173905963", -- Example of a potential custom font
-    "rbxassetid://7122228011"   -- Example particle texture
+    "rbxassetid://112490670948282"   -- Example particle texture
 })
 
 -- Create ScreenGui with improved settings
@@ -54,12 +53,12 @@ local particles = {}
 for i = 1, PARTICLE_COUNT do
     local particle = Instance.new("ImageLabel") -- Using ImageLabel for potential texture
     particle.Name = "Particle_"..i
-    particle.Size = UDim2.new(0, math.random(3, 8), 0, math.random(3, 8))
+    particle.Size = UDim2.new(0, math.random(4, 12), 0, math.random(4, 12))
     particle.Position = UDim2.new(0, math.random(0, 1000), 0, math.random(0, 600))
     particle.BackgroundTransparency = 1
     particle.ImageColor3 = PARTICLE_COLORS[math.random(1, #PARTICLE_COLORS)]
     particle.ImageTransparency = 0.7
-    particle.Image = "rbxassetid://7122228011" -- Optional particle texture
+    particle.Image = "rbxassetid://112490670948282" -- Optional particle texture
     particle.ZIndex = 1
     particle.Parent = background
     
@@ -738,7 +737,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (v0.9)"
+collapsedLabel.Text = "TCmd (v1.0)"
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -1012,6 +1011,118 @@ local function UnFly()
     humanoid.PlatformStand = false
 end
 
+-- FakeLag
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+-- Debug prints
+local function debugPrint(message)
+    print("[DEBUG] " .. message)
+end
+
+-- Variables
+local Character, Head, Humanoid
+local FastAnimationsEnabled = false
+local AnchoringEnabled = false
+local AnchorLoopThread, FastAnimThread
+
+-- Initialize character
+local function InitializeCharacter()
+    Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    Head = Character:WaitForChild("Head")
+    Humanoid = Character:WaitForChild("Humanoid")
+    debugPrint("Character initialized!")
+end
+
+-- Fast animations (15x speed)
+local function FastAnimationsLoop()
+    while FastAnimationsEnabled and task.wait(0.1) do
+        if not Character then continue end
+        
+        local animController = Character:FindFirstChildOfClass("Humanoid") or Character:FindFirstChildOfClass("AnimationController")
+        if not animController then continue end
+        
+        for _, track in pairs(animController:GetPlayingAnimationTracks()) do
+            track:AdjustSpeed(15)
+        end
+    end
+end
+
+-- Head Anchor/Unanchor loop with sit/stand
+local function AnchorHeadLoop()
+    while AnchoringEnabled and task.wait(0.1) do
+        if not Head or not Humanoid then continue end
+        
+        -- Toggle anchor and sit state
+        Head.Anchored = not Head.Anchored
+        if Head.Anchored then
+            Humanoid.Sit = false -- Stand when anchored
+        else
+            Humanoid.Sit = true -- Sit when unanchored
+        end
+        
+        debugPrint("Head Anchored: " .. tostring(Head.Anchored) .. " | Sitting: " .. tostring(Humanoid.Sit))
+    end
+end
+
+-- Start effects
+function Fun()
+    if not Character then InitializeCharacter() end
+    
+    FastAnimationsEnabled = true
+    AnchoringEnabled = true
+    
+    FastAnimThread = task.spawn(FastAnimationsLoop)
+    AnchorLoopThread = task.spawn(AnchorHeadLoop)
+    
+    debugPrint("Started Fun() - Fast Animations + Head Anchor/Sit Loop")
+end
+
+-- Stop effects and reset
+function NoFun()
+    FastAnimationsEnabled = false
+    AnchoringEnabled = false
+    
+    -- Reset animations
+    if Character then
+        local animController = Character:FindFirstChildOfClass("Humanoid") or Character:FindFirstChildOfClass("AnimationController")
+        if animController then
+            for _, track in pairs(animController:GetPlayingAnimationTracks()) do
+                track:AdjustSpeed(1)
+            end
+        end
+    end
+    
+    -- Reset Head and sitting
+    if Head then Head.Anchored = false end
+    if Humanoid then Humanoid.Sit = false end
+    
+    -- Cancel threads
+    if FastAnimThread then task.cancel(FastAnimThread) end
+    if AnchorLoopThread then task.cancel(AnchorLoopThread) end
+    
+    debugPrint("Stopped Fun() - Reset everything")
+end
+
+-- Handle respawns
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    Character = newChar
+    InitializeCharacter()
+    
+    if FastAnimationsEnabled then
+        FastAnimThread = task.spawn(FastAnimationsLoop)
+    end
+    if AnchoringEnabled then
+        AnchorLoopThread = task.spawn(AnchorHeadLoop)
+    end
+end)
+
+-- Initialize if already in-game
+if LocalPlayer.Character then
+    InitializeCharacter()
+end
+
 -- Drop All Tools Function (DAT)
 local function DAT()
     -- Get the player's character and backpack
@@ -1112,205 +1223,6 @@ end
 
 -- Create the AAT function in the global namespace
 getgenv().AAT = AAT
-
--- You can now call AAT() in the console or in other scripts
-
--- hitbox Variable
-local hitboxEnabled = false
-local hitboxSize = 20
-local hitboxTransparency = 0.89
-local hitboxLoop
-
-local Players = game:GetService("Players")
-local localPlayer = Players.LocalPlayer
-
--- Store original properties for restoration
-local originalProperties = {
-    HumanoidRootPart = {},
-    Head = {}
-}
-
-local function playerIsValidTarget(player)
-    return (player ~= localPlayer) and ((player.Team ~= localPlayer.Team) or (player.Team == nil))
-end
-
-local function storeOriginalProperties(character)
-    if not character then return end
-    
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if root and not originalProperties.HumanoidRootPart[character] then
-        originalProperties.HumanoidRootPart[character] = {
-            Size = root.Size,
-            Transparency = root.Transparency,
-            BrickColor = root.BrickColor,
-            Material = root.Material,
-            CanCollide = root.CanCollide,
-            Massless = if root:IsA("BasePart") then root.Massless else nil
-        }
-    end
-    
-    local head = character:FindFirstChild("Head")
-    if head and not originalProperties.Head[character] then
-        originalProperties.Head[character] = {
-            Size = head.Size,
-            Transparency = head.Transparency,
-            BrickColor = head.BrickColor,
-            Material = head.Material,
-            CanCollide = head.CanCollide,
-            Massless = if head:IsA("BasePart") then head.Massless else nil
-        }
-    end
-end
-
-local function applyHitbox(character)
-    if not character then return end
-    storeOriginalProperties(character)
-    
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if root then
-        root.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-        root.Transparency = hitboxTransparency
-        root.BrickColor = BrickColor.new("Dark red")
-        root.Material = Enum.Material.Neon
-        root.CanCollide = false
-        if root:IsA("BasePart") then
-            root.Massless = true
-        end
-    end
-    
-    local head = character:FindFirstChild("Head")
-    if head then
-        head.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-        head.Transparency = hitboxTransparency
-        head.BrickColor = BrickColor.new("Bright red")
-        head.Material = Enum.Material.Neon
-        head.CanCollide = false
-        if head:IsA("BasePart") then
-            head.Massless = true
-        end
-    end
-end
-
-local function resetHitbox(character)
-    if not character then return end
-    
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if root and originalProperties.HumanoidRootPart[character] then
-        local props = originalProperties.HumanoidRootPart[character]
-        root.Size = props.Size
-        root.Transparency = props.Transparency
-        root.BrickColor = props.BrickColor
-        root.Material = props.Material
-        root.CanCollide = props.CanCollide
-        if root:IsA("BasePart") then
-            root.Massless = props.Massless
-        end
-        originalProperties.HumanoidRootPart[character] = nil
-    end
-    
-    local head = character:FindFirstChild("Head")
-    if head and originalProperties.Head[character] then
-        local props = originalProperties.Head[character]
-        head.Size = props.Size
-        head.Transparency = props.Transparency
-        head.BrickColor = props.BrickColor
-        head.Material = props.Material
-        head.CanCollide = props.CanCollide
-        if head:IsA("BasePart") then
-            head.Massless = props.Massless
-        end
-        originalProperties.Head[character] = nil
-    end
-end
-
-local function updateAllHitboxes()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if playerIsValidTarget(player) and player.Character then
-            applyHitbox(player.Character)
-        end
-    end
-end
-
-local function resetAllHitboxes()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player.Character then
-            resetHitbox(player.Character)
-        end
-    end
-end
-
-function hitboxeson()
-    if hitboxEnabled then return end
-    hitboxEnabled = true
-    
-    -- Store original properties first
-    for _, player in ipairs(Players:GetPlayers()) do
-        if playerIsValidTarget(player) and player.Character then
-            storeOriginalProperties(player.Character)
-        end
-    end
-    
-    updateAllHitboxes()
-    
-    if not hitboxLoop then
-        hitboxLoop = game:GetService("RunService").Heartbeat:Connect(function()
-            if not hitboxEnabled then return end
-            updateAllHitboxes()
-        end)
-    end
-end
-
-function hitboxesoff()
-    if not hitboxEnabled then return end
-    hitboxEnabled = false
-    
-    if hitboxLoop then
-        hitboxLoop:Disconnect()
-        hitboxLoop = nil
-    end
-    
-    resetAllHitboxes()
-end
-
--- Player connection handling
-local function handlePlayer(player)
-    if player == localPlayer then return end
-    
-    player.CharacterAdded:Connect(function(character)
-        task.wait(1) -- Wait for character to fully load
-        if hitboxEnabled and playerIsValidTarget(player) then
-            storeOriginalProperties(character)
-            applyHitbox(character)
-        end
-    end)
-    
-    if player.Character and hitboxEnabled and playerIsValidTarget(player) then
-        storeOriginalProperties(player.Character)
-        applyHitbox(player.Character)
-    end
-    
-    player.CharacterRemoving:Connect(function(character)
-        -- Clean up stored properties when player leaves
-        originalProperties.HumanoidRootPart[character] = nil
-        originalProperties.Head[character] = nil
-    end)
-end
-
--- Initialize for existing players
-for _, player in ipairs(Players:GetPlayers()) do
-    handlePlayer(player)
-end
-
--- Set up for new players
-Players.PlayerAdded:Connect(handlePlayer)
-
--- Clean up when player leaves
-Players.PlayerRemoving:Connect(function(player)
-    if player.Character then
-        originalProperties.HumanoidRootPart[player.Character] = nil
-        originalProperties.Head[player.Character] = nil
-    end
-end)
 
 -- Cmdspanel
 local Players = game:GetService("Players")
@@ -1523,9 +1435,12 @@ uiPadding.Parent = scrollingFrame
 local commands = {
     "cmds",
     "clear",
+    "antilag",
     "emitteron/en",
     "emitteroff/ef",
     "reset/re",
+    "meleeloopkill/mkill",
+    "gunloopkill/gkill",
     "serverhop/shop",
     "fov <num>",
     "walkspeed/ws <num>",
@@ -1535,10 +1450,11 @@ local commands = {
     "grav <num>",
     "activatealltools/aat",
     "dropalltools/dat",
-    "infjump - fly by jumping",
+    "infjump ",
+    "fakelag/flag",
+    "unfakelag/unflag",
     "bringunachored/bring ua",
-    "hitbox",
-    "unhitbox",
+    "hitbox <num>",
     "aimlock",
     "esp",
     "boxesp/besp",
@@ -1569,14 +1485,6 @@ local commands = {
     "loopfling/lfling",
     "noclip",
     "clip",
-    "gunkill/gk",
-    "stopgunkill/gk",
-    "ringplayers/rp",
-    "stopringplayers/srp",
-    "meleekill/mk",
-    "stopmeleekill/smk",
-    "massiveheads/mh",
-    "nomassiveheads/nmh",
     "voidprotection/vp",
     "disablevoidprotection/dvp",
     "blackhole/bh",
@@ -1586,6 +1494,7 @@ local commands = {
     "f3x/fex",
     "winobby",
     "floatparts",
+    "🍪",
 }
 
 -- Add commands to the list
@@ -3917,6 +3826,209 @@ end
             else
                 result = "Stopped Flying:\n"
             end
+        elseif command:sub(1, 15) == "antilag" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet('https://raw.githubusercontent.com/xSejker/AntilagFixedd/main/README.md',true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "AntiLag Started:\nRecommended To Use FullBright"
+            end
+        elseif command:sub(1, 15) == "meleekill" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/2Loopkillsbnensnsns3838/refs/heads/main/Lkobf", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "MeleeLoopKillIsActive:\n"
+            end
+        elseif command:sub(1, 15) == "mkill" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/2Loopkillsbnensnsns3838/refs/heads/main/Lkobf", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "MeleeLoopKillIsActive:\n"
+            end
+        elseif command:sub(1, 15) == "gunkill" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Loopkillsbnensnsns3838/refs/heads/main/LoopKillObF", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "GunLoopKillIsActive:\n"
+            end
+        elseif command:sub(1, 15) == "gkill" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Loopkillsbnensnsns3838/refs/heads/main/LoopKillObF", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "GunLoopKillIsActive:\n"
+            end
+        elseif command:sub(1, 15) == "fakelag" then
+            local luaCode = command:sub(16)
+            local func, err = Fun()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "FakeLag Started:\n"
+            end
+        elseif command:sub(1, 15) == "unfakelag" then
+            local luaCode = command:sub(16)
+            local func, err = NoFun()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "FakeLag Stopped:\n"
+            end
+        elseif command:sub(1, 15) == "flag" then
+            local luaCode = command:sub(16)
+            local func, err = Fun()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "FakeLag Started:\n"
+            end
+        elseif command:sub(1, 15) == "unflag" then
+            local luaCode = command:sub(16)
+            local func, err = NoFun()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "FakeLag Stopped:\n"
+            end
+        elseif command:sub(1, 7) == "hitbox " then -- Expands HRP and Head hitbox with visual and collision modifications
+            local valueStr = command:sub(8)
+            local value = tonumber(valueStr)
+            local localPlayer = game.Players.LocalPlayer
+            
+            if value then
+                if value == 0 then
+                    -- Turn off hitboxes for all players
+                    for _, player in ipairs(game.Players:GetPlayers()) do
+                        if player ~= localPlayer then
+                            local character = player.Character or player.CharacterAdded:Wait()
+                            local hrp = character:FindFirstChild("HumanoidRootPart")
+                            local head = character:FindFirstChild("Head")
+                            
+                            -- Restore HRP properties
+                            if hrp and hrp:FindFirstChild("OriginalSize") then
+                                hrp.Size = hrp.OriginalSize.Value
+                                hrp.CanCollide = true
+                                hrp.Transparency = 0
+                                hrp.OriginalSize:Destroy()
+                            end
+                            
+                            -- Restore Head properties
+                            if head and head:FindFirstChild("OriginalSize") then
+                                head.Size = head.OriginalSize.Value
+                                head.CanCollide = true
+                                head.Transparency = 0
+                                head.OriginalSize:Destroy()
+                            end
+                        end
+                    end
+                    result = "Hitboxes turned off for all applicable players"
+                else
+                    -- Expand hitboxes based on team settings
+                    for _, player in ipairs(game.Players:GetPlayers()) do
+                        if player ~= localPlayer then
+                            -- Check team conditions
+                            local shouldModify = false
+                            if game.Teams and #game.Teams:GetTeams() > 0 then
+                                -- Team game - only modify enemies
+                                shouldModify = player.Team ~= localPlayer.Team
+                            else
+                                -- No teams - modify everyone except local player
+                                shouldModify = true
+                            end
+                            
+                            if shouldModify then
+                                local character = player.Character
+                                if character then
+                                    local hrp = character:FindFirstChild("HumanoidRootPart")
+                                    local head = character:FindFirstChild("Head")
+                                    
+                                    -- Handle HRP
+                                    if hrp then
+                                        if not hrp:FindFirstChild("OriginalSize") then
+                                            local originalSize = Instance.new("Vector3Value")
+                                            originalSize.Name = "OriginalSize"
+                                            originalSize.Value = hrp.Size
+                                            originalSize.Parent = hrp
+                                        end
+                                        hrp.Size = Vector3.new(value, value, value)
+                                        hrp.CanCollide = false
+                                        hrp.Transparency = 0.5
+                                    end
+                                    
+                                    -- Handle Head
+                                    if head then
+                                        if not head:FindFirstChild("OriginalSize") then
+                                            local originalSize = Instance.new("Vector3Value")
+                                            originalSize.Name = "OriginalSize"
+                                            originalSize.Value = head.Size
+                                            originalSize.Parent = head
+                                        end
+                                        head.Size = Vector3.new(value, value, value)
+                                        head.CanCollide = false
+                                        head.Transparency = 0.5
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    result = "Hitboxes expanded to " .. value .. " (non-collidable, 50% transparent) for applicable players"
+                end
+            else
+                result = "Invalid value. Usage: hitbox [number] or hitbox 0 to turn off"
+            end
         elseif command:sub(1, 15) == "susgui" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/TmcdSusGu182-hi/refs/heads/main/GuiLol", true))()
@@ -4151,162 +4263,6 @@ end
             else
                 result = "Clipped:\nWalk Thru Walls Is Disabled"
             end
-        elseif command:sub(1, 8) == "massiveheads" then
-            local luaCode = command:sub(15)
-            local func, err = MassiveHeadsOn()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "BigHeads Off:\n"
-            end
-        elseif command:sub(1, 8) == "nomassiveheads" then
-            local luaCode = command:sub(16)
-            local func, err = MassiveHeadsOff()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "BigHeads Is Enabled:\n"
-            end
-        elseif command:sub(1, 8) == "mh" then
-            local luaCode = command:sub(15)
-            local func, err = MassiveHeadsOn()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "BigHeads Is Enabled:\n"
-            end
-        elseif command:sub(1, 8) == "nmh" then
-            local luaCode = command:sub(16)
-            local func, err = MassiveHeadsOff()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "BigHeads Is Disabled:\n"
-            end
-        elseif command:sub(1, 15) == "gunkill" then
-            local luaCode = command:sub(19)
-            local func, err = BringAllOn()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Kill Players With Guns or other (req, weapon):\n"
-            end
-        elseif command:sub(1, 15) == "stopgunkill" then
-            local luaCode = command:sub(19)
-            local func, err = BringAllOff()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Stopped gunkill(Client):\n"
-            end
-        elseif command:sub(1, 15) == "gk" then
-            local luaCode = command:sub(19)
-            local func, err = BringAllOn()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Kill Players With Guns or other (req, weapon):\n"
-            end
-        elseif command:sub(1, 15) == "sgk" then
-            local luaCode = command:sub(19)
-            local func, err = BringAllOff()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Stopped gunkill (Client):\n"
-            end
-        elseif command:sub(1, 15) == "ringplayers" then
-            local luaCode = command:sub(6)
-            local func, err = LoopBringOn()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Ring All Players (Client):\n"
-            end
-        elseif command:sub(1, 15) == "stopringplayers" then
-            local luaCode = command:sub(6)
-            local func, err = LoopBringOff()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Stop Ring All Players (Client):\n"
-            end
-        elseif command:sub(1, 15) == "rp" then
-            local luaCode = command:sub(6)
-            local func, err = LoopBringOn()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Ring All Players (Client):\n"
-            end
-        elseif command:sub(1, 15) == "srp" then
-            local luaCode = command:sub(6)
-            local func, err = LoopBringOff()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Stop Ring All Players (Client):\n"
-            end
         elseif command:sub(1, 15) == "namelessadmin" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Nameless-Admin-Official-15022"))()
@@ -4384,75 +4340,6 @@ end
                 end
             else
                 result = "TelekinesisIsActive:\n"
-            end
-        elseif command:sub(1, 15) == "meleekill" then
-            local luaCode = command:sub(19)
-            local func, err = ItemTpOn()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Kill Players With Sword or other (req, melee):\n"
-            end
-        elseif command:sub(1, 15) == "stopmeleekill" then
-            local luaCode = command:sub(19)
-            local func, err = ItemTpOff()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Stopped meleekill (Client):\n"
-            end
-        elseif command:sub(1, 15) == "mk" then
-            local luaCode = command:sub(19)
-            local func, err = ItemTpOn()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Kill Players With Sword or other (req, melee):\n"
-            end
-        elseif command:sub(1, 15) == "smk" then
-            local luaCode = command:sub(19)
-            local func, err = ItemTpOff()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Stopped meleekill:\n"
-            end
-        elseif command:sub(1, 7) == "hitbox " then
-            local size = tonumber(command:sub(8)) -- Get size from command
-            if size and size > 0 then
-                for _, player in pairs(game.Players:GetPlayers()) do
-                    if player ~= game.Players.LocalPlayer then -- Check added here
-                        local character = player.Character
-                        if character and character:FindFirstChild("HumanoidRootPart") then
-                            local hrp = character.HumanoidRootPart
-                            hrp.Size = Vector3.new(size, size, size) -- Expand HRP
-                            hrp.Transparency = 0.89 -- Almost visible
-                        end
-                    end
-                end
-                result = "Hitbox expanded to size: " .. size
-            else
-                result = "Invalid size. Use: hitbox [size]"
             end
         elseif command:sub(1, 13) == "f3x" then
             local luaCode = command:sub(14)
