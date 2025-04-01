@@ -737,7 +737,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (v1.0)"
+collapsedLabel.Text = "TCmd (v1.1)"
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -1366,7 +1366,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(0.7, 0, 0.8, 0)
 title.Position = UDim2.new(0.1, 0, 0.1, 0)
 title.BackgroundTransparency = 1
-title.Text = "COMMAND LIST"
+title.Text = "TCMD | COMMAND LIST"
 title.TextColor3 = Color3.fromRGB(220, 220, 220)
 title.TextScaled = true
 title.Font = Enum.Font.GothamSemibold
@@ -1438,23 +1438,26 @@ local commands = {
     "antilag",
     "emitteron/en",
     "emitteroff/ef",
+    "antikick",
+    "fullbright/fb",
+    "unfullbright/unfb",
     "reset/re",
     "meleeloopkill/mkill",
     "gunloopkill/gkill",
     "serverhop/shop",
-    "fov <num>",
-    "walkspeed/ws <num>",
+    "fov [value]",
+    "walkspeed/ws [value]",
     "resetwalkspeed/resetws",
-    "jumppower/jp <num>",
-    "tpto <plr>",
-    "grav <num>",
+    "jumppower/jp [value]",
+    "tpto [plr]",
+    "grav [value]",
     "activatealltools/aat",
     "dropalltools/dat",
     "infjump ",
     "fakelag/flag",
     "unfakelag/unflag",
     "bringunachored/bring ua",
-    "hitbox <num>",
+    "hitbox [value]",
     "aimlock",
     "esp",
     "boxesp/besp",
@@ -1474,13 +1477,13 @@ local commands = {
     "sit",
     "lay",
     "fly/f",
-    "unfly/uf",
+    "unfly/unf",
     "tpwalk/tpw",
     "tpwalkspeed/tpws",
     "stoptpwalk/stpw",
     "enabletfling/etf",
     "disabletfling/dtf",
-    "fling <plr>",
+    "fling [plr]",
     "flingall",
     "loopfling/lfling",
     "noclip",
@@ -3230,7 +3233,7 @@ end
         input.Text = ""
 
         -- Add the command to the output
-        outputText.Text = outputText.Text .. "\nC:/> " .. command
+        outputText.Text = outputText.Text .. "\nUser> " .. command
 
         -- Simulate command execution
         local result = "Command not recognized."
@@ -3813,7 +3816,7 @@ end
             else
                 result = "Flying:\n"
             end
-        elseif command:sub(1, 15) == "uf" then
+        elseif command:sub(1, 15) == "unf" then
             local luaCode = command:sub(16)
             local func, err = UnFly()
             if func then
@@ -3825,6 +3828,19 @@ end
                 end
             else
                 result = "Stopped Flying:\n"
+            end
+        elseif command:sub(1, 15) == "antikick" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/nmalka01/nmalka01/refs/heads/main/Anti-kick"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "AntiKick Started:\n"
             end
         elseif command:sub(1, 15) == "antilag" then
             local luaCode = command:sub(16)
@@ -4040,7 +4056,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "Stopped Flying:\n"
+                result = "🍆💦:\n"
             end
         elseif command:sub(1, 15) == "ss" then
             local luaCode = command:sub(16)
@@ -4053,7 +4069,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "Stopped Flying:\n"
+                result = "🍆💦:\n"
             end
         elseif command:sub(1, 15) == "aat" then
             local luaCode = command:sub(16)
@@ -4466,6 +4482,30 @@ end
             else
                 result = "Invalid speed (use numbers > 0)"
             end
+        elseif command:sub(1, 10) == "fullbright" then
+            -- Enable fullbright (remove lighting effects)
+            game:GetService("Lighting").GlobalShadows = false
+            game:GetService("Lighting").Brightness = 2
+            game:GetService("Lighting").Ambient = Color3.new(1, 1, 1)
+            result = "Full Bright Is Enabled"
+        elseif command:sub(1, 12) == "unfullbright" then
+            -- Reset lighting to default values
+            game:GetService("Lighting").GlobalShadows = true
+            game:GetService("Lighting").Brightness = 1
+            game:GetService("Lighting").Ambient = Color3.new(0.5, 0.5, 0.5)
+            result = "Full Bright Is Disabled"
+        elseif command:sub(1, 10) == "fb" then
+            -- Enable fullbright (remove lighting effects)
+            game:GetService("Lighting").GlobalShadows = false
+            game:GetService("Lighting").Brightness = 2
+            game:GetService("Lighting").Ambient = Color3.new(1, 1, 1)
+            result = "Full Bright Is Enabled"
+        elseif command:sub(1, 12) == "unfb" then
+            -- Reset lighting to default values
+            game:GetService("Lighting").GlobalShadows = true
+            game:GetService("Lighting").Brightness = 1
+            game:GetService("Lighting").Ambient = Color3.new(0.5, 0.5, 0.5)
+            result = "Full Bright Is Disabled"
         elseif command == "xray" then
             enableXRay()
             result = "XRay enabled."
