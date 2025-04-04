@@ -4071,7 +4071,7 @@ end
                            .. "Status: "..(getgenv().RingParts.Enabled and "ON" or "OFF").."\n"
                            .. "Radius: "..getgenv().RingParts.Radius.."\n"
                            .. "Strength: "..getgenv().RingParts.Strength.."\n"
-                           .. "Use subcommands: on/off, radius [num], strength [num], stop"
+                           .. "Use subcommands: on/off, radius [value], speed [value], stop"
                 end
             end
         elseif command:lower():sub(1,5) == "kill " then
