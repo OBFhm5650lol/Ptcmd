@@ -607,7 +607,7 @@ function showNotification(title, message, duration, color)
 end
 
 -- Example usage:
-showNotification("LOADING", "67 commands has been loaded", 3, Color3.fromRGB(0, 200, 100))
+showNotification("LOADING", "70 commands has been loaded", 3, Color3.fromRGB(0, 200, 100))
 task.wait(1.5)
 showNotification("WELCOME", "Welcome to TCMD! Enjoy >:33", 8, Color3.fromRGB(0, 170, 255))
 task.wait()
@@ -1017,7 +1017,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (v1.2)"
+collapsedLabel.Text = "TCmd (v1.3)"
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -1289,6 +1289,110 @@ local function UnFly()
     -- Re-enable animations
     character.Animate.Disabled = false
     humanoid.PlatformStand = false
+end
+
+-- Kill Variable
+local TargetPlayer = nil
+local LoopBringActive = false
+local originalTransparency = {}
+local bringConnection = nil
+
+-- Add this function to your existing code
+function StartKillEffect(targetName)
+    -- Clean up any existing effect
+    if bringConnection then
+        bringConnection:Disconnect()
+        bringConnection = nil
+    end
+    
+    -- Find target player
+    TargetPlayer = nil
+    for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+        if player ~= game:GetService("Players").LocalPlayer and player.Name:lower():find(targetName:lower()) then
+            TargetPlayer = player
+            break
+        end
+    end
+    
+    if not TargetPlayer then
+        return false, "Player not found!"
+    end
+    
+    local character = TargetPlayer.Character
+    local localCharacter = game:GetService("Players").LocalPlayer.Character
+    if not character or not character.PrimaryPart or not localCharacter or not localCharacter.PrimaryPart then
+        return false, "Invalid character(s)!"
+    end
+    
+    local originalPosition = character.PrimaryPart.Position
+    LoopBringActive = true
+    
+    -- Store original transparency
+    originalTransparency = {}
+    for _, part in pairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            originalTransparency[part] = part.Transparency
+            part.Transparency = 1
+        elseif part:IsA("ParticleEmitter") or part:IsA("Trail") then
+            part.Enabled = false
+        end
+    end
+    
+    local spinSpeed = 1e9
+    local angle = 0
+    local startTime = tick()
+    
+    bringConnection = game:GetService("RunService").Heartbeat:Connect(function(deltaTime)
+        if not LoopBringActive or tick() - startTime > 2 then -- 2 second duration
+            LoopBringActive = false
+            if bringConnection then
+                bringConnection:Disconnect()
+                bringConnection = nil
+            end
+            
+            -- Clean up
+            if character then
+                for part, transparency in pairs(originalTransparency) do
+                    if part and part.Parent then
+                        part.Transparency = transparency
+                    end
+                end
+                
+                for _, part in pairs(character:GetDescendants()) do
+                    if (part:IsA("ParticleEmitter") or part:IsA("Trail")) and part.Parent then
+                        part.Enabled = true
+                    end
+                end
+                
+                local forceField = character:FindFirstChild("ForceField")
+                if forceField then forceField:Destroy() end
+                
+                if character.PrimaryPart then
+                    character:SetPrimaryPartCFrame(CFrame.new(originalPosition))
+                end
+            end
+            return
+        end
+        
+        if character and character.PrimaryPart and localCharacter and localCharacter.PrimaryPart then
+            if not character:FindFirstChild("ForceField") then
+                local forceField = Instance.new("ForceField")
+                forceField.Visible = false
+                forceField.Parent = character
+            end
+            
+            angle = (angle + spinSpeed * deltaTime) % 360
+            character:SetPrimaryPartCFrame(
+                localCharacter.PrimaryPart.CFrame * 
+                CFrame.new(1.7, 4.7, -1.3) * 
+                CFrame.Angles(0, math.rad(angle), 0)
+            )
+        else
+            LoopBringActive = false
+        end
+    end)
+    
+    return true, "Executing kill effect on "..TargetPlayer.Name
 end
 
 -- animation speed variable
@@ -1742,7 +1846,8 @@ uiPadding.Parent = scrollingFrame
 local commands = {
     "cmds",
     "clear",
-    "fly/f",
+    "players/plrs",
+    "fly/f -- (req, tpwalk)",
     "unfly/uf",
     "antilag",
     "emitteron/en",
@@ -1750,14 +1855,20 @@ local commands = {
     "antikick",
     "fullbright/fb",
     "unfullbright/unfb",
+    "bringunachored/bring ua",
+    "ringparts/rp",
+    "blackhole/bh",
+    "disableblackhole/dbh",
     "reset/re",
-    "LoopKill/lkill",
+    "loopkill/lkill -- (req, gun or sword)",
+    "kill -- (req, sword)",
     "serverhop/shop",
     "fov [value]",
     "walkspeed/ws [value]",
     "resetwalkspeed/resetws",
     "jumppower/jp [value]",
     "tpwalk/tpw",
+    "stoptpwalk/stpw",
     "tpwalkspeed/tpws [value]",
     "animationspeed/as [value]",
     "tpto [plr]",
@@ -1767,7 +1878,6 @@ local commands = {
     "infjump ",
     "fakelag/flag",
     "unfakelag/unflag",
-    "bringunachored/bring ua",
     "hitbox [value]",
     "aimlock",
     "esp",
@@ -1787,7 +1897,6 @@ local commands = {
     "namelessadminv2/nav2",
     "sit",
     "lay",
-    "stoptpwalk/stpw",
     "enabletfling/etf",
     "disabletfling/dtf",
     "fling [plr]",
@@ -1797,8 +1906,6 @@ local commands = {
     "clip",
     "voidprotection/vp",
     "disablevoidprotection/dvp",
-    "blackhole/bh",
-    "disableblackhole/dbh",
     "telekinesis/tk",
     "susgui/ss",
     "f3x/fex",
@@ -3113,273 +3220,6 @@ end
 EmitterOn()
 
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
-function MassiveHeadsOn()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local character = player.Character
-            if character then
-                local head = character:FindFirstChild("Head")
-                if head then
-                    head.Size = Vector3.new(10, 10, 10)
-                    head.Transparency = 0.5
-                    head.CanCollide = false
-                end
-            end
-        end
-    end
-    
-    Players.PlayerAdded:Connect(function(player)
-        player.CharacterAdded:Connect(function(character)
-            local head = character:WaitForChild("Head")
-            head.Size = Vector3.new(10, 10, 10)
-            head.Transparency = 0.5
-            head.CanCollide = false
-        end)
-    end)
-end
-
-function MassiveHeadsOff()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local character = player.Character
-            if character then
-                local head = character:FindFirstChild("Head")
-                if head then
-                    head.Size = Vector3.new(2, 1, 1)
-                    head.Transparency = 0
-                    head.CanCollide = true
-                end
-            end
-        end
-    end
-end
-
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local localroot = character:WaitForChild("HumanoidRootPart")
-
-local function UpdateChar()
-    character = player.Character or player.CharacterAdded:Wait()
-    localroot = character:WaitForChild("HumanoidRootPart")
-end
-
-game.Players.LocalPlayer.CharacterAdded:Connect(UpdateChar)
-
-local TogglePlayerOnly = false
-local originalPositions = {}
-local originalParent = {}
-
-local function bringPlayerOnly()
-    if TogglePlayerOnly then
-        spawn(function()
-            while TogglePlayerOnly do
-                for _, v in pairs(game.Players:GetPlayers()) do
-                    if v ~= player and v.Character then
-                        local targetRoot = v.Character:FindFirstChild("HumanoidRootPart")
-                        if targetRoot then
-                            -- Store original position and parent
-                            if not originalPositions[v.UserId] then
-                                originalPositions[v.UserId] = targetRoot.CFrame
-                                originalParent[v.UserId] = targetRoot.Parent
-                            end
-
-                            -- Disable collisions and hide character
-                            targetRoot.CanCollide = false
-                            v.Character.Parent = game.Workspace -- Move to workspace to hide from other players
-
-                            -- Teleport to local player position
-                            local offset = CFrame.new(1, 4, -2)
-                            targetRoot.CFrame = localroot.CFrame * offset
-                        end
-                    end
-                end
-                game:GetService("RunService").Heartbeat:Wait()
-
-                -- Check if local player has died
-                if not localroot or not localroot.Parent then
-                    TogglePlayerOnly = false
-                end
-            end
-
-            -- Restore positions and visibility
-            for _, v in pairs(game.Players:GetPlayers()) do
-                if v ~= player and v.Character then
-                    local targetRoot = v.Character:FindFirstChild("HumanoidRootPart")
-                    if targetRoot and originalPositions[v.UserId] then
-                        targetRoot.CFrame = originalPositions[v.UserId]
-                        targetRoot.Parent = originalParent[v.UserId]
-                        targetRoot.CanCollide = true
-                    end
-                end
-            end
-
-            originalPositions = {}
-            originalParent = {}
-        end)
-    end
-end
-
--- Turn on bringing players close
-function ItemTpOn()
-    TogglePlayerOnly = true
-    bringPlayerOnly()
-end
-
--- Turn off bringing players close
-function ItemTpOff()
-    TogglePlayerOnly = false
-end
-
--- Monitor local player's character death
-player.CharacterAdded:Connect(function()
-    if TogglePlayerOnly then
-        TogglePlayerOnly = false
-    end
-    UpdateChar()
-end)
-
-    local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local localroot = character:WaitForChild("HumanoidRootPart")
-
-local function UpdateChar()
-    character = player.Character or player.CharacterAdded:Wait()
-    localroot = character:WaitForChild("HumanoidRootPart")
-end
-
-game.Players.LocalPlayer.CharacterAdded:Connect(UpdateChar)
-
-local TogglePlayerOnly = false
-
--- Function to bring players close to the local player
-local function bringPlayerOnly()
-    if TogglePlayerOnly then
-        spawn(function()
-            while TogglePlayerOnly do
-                for _, v in pairs(game.Players:GetPlayers()) do
-                    if v ~= player and v.Character then
-                        local targetRoot = v.Character:FindFirstChild("HumanoidRootPart")
-                        if targetRoot then
-                            -- Bring the player close to the local player (e.g., 5 studs away)
-                            local offset = CFrame.new(0, 0, -6) -- Adjust the Z value for distance
-                            targetRoot.CFrame = localroot.CFrame * offset
-                            game:GetService("RunService").Heartbeat:Wait()
-                        end
-                    end
-                end
-            end
-        end)
-    end
-end
-
--- Turn on bringing players close
-function BringAllOn()
-    TogglePlayerOnly = true
-    bringPlayerOnly()
-end
-
--- Turn off bringing players close
-function BringAllOff()
-    TogglePlayerOnly = false
-end
-
-    -- Configuration
-local LOOPBRING_DISTANCE = 0.5 -- Distance between players in loop
-local LOOPBRING_SPEED = 0.40 -- Speed of movement
-local LOOPBRING_RADIUS = 5 -- Smaller radius (was 5)
-
--- Services
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
--- State management
-local loopBringActive = false
-local originalPositions = {}
-local angleOffset = 0
-
--- Function to calculate positions in loop
-local function calculateLoopPositions(centerPosition)
-    local positions = {}
-    local playerCount = #Players:GetPlayers()
-    
-    if playerCount == 0 then return positions end
-    
-    local angleStep = 2 * math.pi / playerCount
-    local radius = LOOPBRING_RADIUS
-    
-    for i, player in ipairs(Players:GetPlayers()) do
-        if player == Players.LocalPlayer then
-            table.insert(positions, centerPosition)
-            continue
-        end
-        
-        local angle = (i - 1) * angleStep + angleOffset
-        local x = centerPosition.X + radius * math.cos(angle)
-        local z = centerPosition.Z + radius * math.sin(angle)
-        table.insert(positions, Vector3.new(x, centerPosition.Y, z))
-    end
-    
-    return positions
-end
-
--- Main loop bring function
-local function loopBring()
-    if not loopBringActive then return end
-    
-    local centerPosition = Players.LocalPlayer.Character.Torso.Position
-    local positions = calculateLoopPositions(centerPosition)
-    
-    for i, player in ipairs(Players:GetPlayers()) do
-        if player == Players.LocalPlayer then continue end
-        
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local targetPosition = positions[i]
-            local currentPart = player.Character.HumanoidRootPart
-            
-            currentPart.CFrame = currentPart.CFrame:Lerp(CFrame.new(targetPosition), LOOPBRING_SPEED)
-        end
-    end
-    
-    angleOffset = angleOffset + LOOPBRING_SPEED
-end
-
--- Connect to render stepped
-RunService.RenderStepped:Connect(loopBring)
-
--- Toggle functions
-local function LoopBringOn()
-    loopBringActive = true
-    originalPositions = {}
-    
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player.Character then
-            table.insert(originalPositions, player.Character.HumanoidRootPart.Position)
-        end
-    end
-end
-
-local function LoopBringOff()
-    loopBringActive = false
-    
-    for i, player in ipairs(Players:GetPlayers()) do
-        if player == Players.LocalPlayer then continue end
-        
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local originalPosition = originalPositions[i]
-            if originalPosition then
-                player.Character.HumanoidRootPart.CFrame = CFrame.new(originalPosition)
-            end
-        end
-    end
-end
-
--- Expose functions
--- LoopBringOn()
--- LoopBringOff()
-
-    local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -4137,6 +3977,175 @@ end
                 end
             else
                 result = "Stopped Flying:\n"
+            end
+        elseif command:lower():sub(1,9) == "ringparts" or command:lower():sub(1,2) == "rp" then
+            local args = {}
+            for arg in command:gmatch("%S+") do
+                table.insert(args, arg:lower())
+            end
+            if not getgenv().RingParts then
+                -- Initialize RingParts system
+                getgenv().RingParts = {
+                    Enabled = false,
+                    Radius = 50,
+                    Strength = 1000,
+                    Parts = {},
+                    Connections = {}
+                }
+                local function isValidPart(part)
+                    return part:IsA("BasePart") and not part.Anchored 
+                           and not part:IsDescendantOf(game.Players.LocalPlayer.Character)
+                           and part.Parent ~= workspace.Terrain
+                end
+                -- Collect all existing parts
+                for _, part in pairs(workspace:GetDescendants()) do
+                    if isValidPart(part) then
+                        table.insert(getgenv().RingParts.Parts, part)
+                    end
+                end
+                -- Set up connections for new/removed parts
+                table.insert(getgenv().RingParts.Connections, workspace.DescendantAdded:Connect(function(part)
+                    if isValidPart(part) then
+                        table.insert(getgenv().RingParts.Parts, part)
+                    end
+                end))
+                table.insert(getgenv().RingParts.Connections, workspace.DescendantRemoving:Connect(function(part)
+                    local index = table.find(getgenv().RingParts.Parts, part)
+                    if index then
+                        table.remove(getgenv().RingParts.Parts, index)
+                    end
+                end))
+                -- Main effect loop
+                table.insert(getgenv().RingParts.Connections, game:GetService("RunService").Heartbeat:Connect(function()
+                    if not getgenv().RingParts.Enabled then return end
+                    if not game.Players.LocalPlayer.Character then return end
+                    local root = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if not root then return end
+                    local center = root.Position
+                    local radius = getgenv().RingParts.Radius
+                    local strength = getgenv().RingParts.Strength
+                    for _, part in pairs(getgenv().RingParts.Parts) do
+                        if part and part.Parent then
+                            local pos = part.Position
+                            local dir = (pos - center).Unit
+                            local flatDir = Vector3.new(dir.X, 0, dir.Z).Unit
+                            
+                            -- Calculate target position in a circle around player
+                            local angle = math.atan2(flatDir.Z, flatDir.X) + 0.05
+                            local targetPos = center + Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+                            
+                            -- Apply velocity toward target position
+                            part.Velocity = (targetPos - pos).Unit * strength
+                            part.RotVelocity = Vector3.new(0, 50, 0)
+                        end
+                    end
+                end))
+                result = "RingParts system initialized! Use:\n"
+                       .. "rp on/off - Toggle\n"
+                       .. "rp radius [value] - Set radius\n"
+                       .. "rp speed [value] - Set speed\n"
+                       .. "rp stop - Stop Ring"
+            else
+                -- Handle subcommands
+                if args[2] == "on" then
+                    getgenv().RingParts.Enabled = true
+                    result = "RingParts effect enabled"
+                elseif args[2] == "off" then
+                    getgenv().RingParts.Enabled = false
+                    result = "RingParts effect disabled"
+                elseif args[2] == "radius" and tonumber(args[3]) then
+                    getgenv().RingParts.Radius = tonumber(args[3])
+                    result = "Radius set to "..args[3]
+                elseif args[2] == "speed" and tonumber(args[3]) then
+                    getgenv().RingParts.Strength = tonumber(args[3])
+                    result = "Speed set to "..args[3]
+                elseif args[2] == "stop" then
+                    -- Clean up connections
+                    for _, conn in pairs(getgenv().RingParts.Connections) do
+                        conn:Disconnect()
+                    end
+                    getgenv().RingParts = nil
+                    result = "RingParts system stopped and cleaned up"
+                else
+                    result = "RingParts is active. Current settings:\n"
+                           .. "Status: "..(getgenv().RingParts.Enabled and "ON" or "OFF").."\n"
+                           .. "Radius: "..getgenv().RingParts.Radius.."\n"
+                           .. "Strength: "..getgenv().RingParts.Strength.."\n"
+                           .. "Use subcommands: on/off, radius [num], strength [num], stop"
+                end
+            end
+        elseif command:lower():sub(1,5) == "kill " then
+            local playerName = command:sub(6):match("^%s*(.-)%s*$") -- Trim whitespace
+            if playerName and playerName ~= "" then
+                local success, execResult = pcall(function()
+                    return StartKillEffect(playerName)
+                end)
+                
+                if success then
+                    if execResult then
+                        result = execResult[2] -- Get the message from the tuple
+                    else
+                        result = "Kill effect started"
+                    end
+                else
+                    result = "Error: "..tostring(execResult)
+                end
+            else
+                result = "Please specify a player name (e.g. 'kill username')"
+            end
+        elseif command:sub(1, 15) == "players" then
+            local luaCode = command:sub(16)
+            if luaCode and luaCode:len() > 0 then
+                local func, err = load("return " .. luaCode)
+                if not func then
+                    func, err = load(luaCode)
+                end
+                
+                if func then
+                    local success, execResult = pcall(func)
+                    if success then
+                        result = "Executed successfully:\n" .. tostring(execResult)
+                    else
+                        result = "Execution error:\n" .. tostring(execResult)
+                    end
+                else
+                    result = "Lua error:\n" .. tostring(err)
+                end
+            else
+                -- Show all player usernames
+                local players = game:GetService("Players"):GetPlayers()
+                local usernames = {}
+                for _, player in ipairs(players) do
+                    table.insert(usernames, player.Name)
+                end
+                result = "Players online (" .. #usernames .. "):\n" .. table.concat(usernames, "\n")
+            end
+        elseif command:sub(1, 15) == "plrs" then
+            local luaCode = command:sub(16)
+            if luaCode and luaCode:len() > 0 then
+                local func, err = load("return " .. luaCode)
+                if not func then
+                    func, err = load(luaCode)
+                end
+                
+                if func then
+                    local success, execResult = pcall(func)
+                    if success then
+                        result = "Executed successfully:\n" .. tostring(execResult)
+                    else
+                        result = "Execution error:\n" .. tostring(execResult)
+                    end
+                else
+                    result = "Lua error:\n" .. tostring(err)
+                end
+            else
+                -- Show all player usernames
+                local players = game:GetService("Players"):GetPlayers()
+                local usernames = {}
+                for _, player in ipairs(players) do
+                    table.insert(usernames, player.Name)
+                end
+                result = "Players online (" .. #usernames .. "):\n" .. table.concat(usernames, "\n")
             end
         elseif command:lower():sub(1, 15) == "animationspeed " or command:lower():sub(1, 3) == "as " then
             -- Extract speed value (works for both versions)
