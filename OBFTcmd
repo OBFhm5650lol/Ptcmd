@@ -607,7 +607,7 @@ function showNotification(title, message, duration, color)
 end
 
 -- Example usage:
-showNotification("LOADING", "74 commands has been loaded", 3, Color3.fromRGB(0, 200, 100))
+showNotification("LOADING", "76 commands has been loaded", 3, Color3.fromRGB(0, 200, 100))
 task.wait(1.5)
 showNotification("WELCOME", "Welcome to TCMD! Enjoy >:33", 8, Color3.fromRGB(0, 170, 255))
 task.wait()
@@ -1017,7 +1017,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (v1.3)"
+collapsedLabel.Text = "TCmd (v1.4)"
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -1289,6 +1289,119 @@ local function UnFly()
     -- Re-enable animations
     character.Animate.Disabled = false
     humanoid.PlatformStand = false
+end
+
+-- // Antifling \\ --
+local antiflingEnabled = false
+local connections = {}
+
+local function AFON()
+    if antiflingEnabled then return end
+    antiflingEnabled = true
+    
+    -- [ Services ] --
+    local Services = setmetatable({}, {__index = function(Self, Index)
+        local NewService = game.GetService(game, Index)
+        if NewService then
+            Self[Index] = NewService
+        end
+        return NewService
+    end})
+
+    -- [ LocalPlayer ] --
+    local LocalPlayer = Services.Players.LocalPlayer
+
+    -- // Functions \\ --
+    local function PlayerAdded(Player)
+        local Detected = false
+        local Character;
+        local PrimaryPart;
+
+        local function CharacterAdded(NewCharacter)
+            Character = NewCharacter
+            repeat
+                wait()
+                PrimaryPart = NewCharacter:FindFirstChild("HumanoidRootPart")
+            until PrimaryPart
+            Detected = false
+        end
+
+        CharacterAdded(Player.Character or Player.CharacterAdded:Wait())
+        local conn = Player.CharacterAdded:Connect(CharacterAdded)
+        table.insert(connections, conn)
+        
+        local heartbeatConn = Services.RunService.Heartbeat:Connect(function()
+            if (Character and Character:IsDescendantOf(workspace)) and (PrimaryPart and PrimaryPart:IsDescendantOf(Character)) then
+                if PrimaryPart.AssemblyAngularVelocity.Magnitude > 50 or PrimaryPart.AssemblyLinearVelocity.Magnitude > 100 then
+                    if Detected == false then
+                        game.StarterGui:SetCore("ChatMakeSystemMessage", {
+                            Text = "Fling Exploit detected, Player: " .. tostring(Player);
+                            Color = Color3.fromRGB(255, 200, 0);
+                        })
+                    end
+                    Detected = true
+                    for i,v in ipairs(Character:GetDescendants()) do
+                        if v:IsA("BasePart") then
+                            v.CanCollide = false
+                            v.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                            v.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                            v.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0)
+                        end
+                    end
+                    PrimaryPart.CanCollide = false
+                    PrimaryPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                    PrimaryPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    PrimaryPart.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0)
+                end
+            end
+        end)
+        table.insert(connections, heartbeatConn)
+    end
+
+    -- // Event Listeners \\ --
+    for i,v in ipairs(Services.Players:GetPlayers()) do
+        if v ~= LocalPlayer then
+            PlayerAdded(v)
+        end
+    end
+    local playerAddedConn = Services.Players.PlayerAdded:Connect(PlayerAdded)
+    table.insert(connections, playerAddedConn)
+
+    local LastPosition = nil
+    local localHeartbeatConn = Services.RunService.Heartbeat:Connect(function()
+        pcall(function()
+            local PrimaryPart = LocalPlayer.Character.PrimaryPart
+            if PrimaryPart.AssemblyLinearVelocity.Magnitude > 250 or PrimaryPart.AssemblyAngularVelocity.Magnitude > 250 then
+                PrimaryPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                PrimaryPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                PrimaryPart.CFrame = LastPosition
+
+                game.StarterGui:SetCore("ChatMakeSystemMessage", {
+                    Text = "You were flung. Neutralizing velocity.";
+                    Color = Color3.fromRGB(255, 0, 0);
+                })
+            elseif PrimaryPart.AssemblyLinearVelocity.Magnitude < 50 or PrimaryPart.AssemblyAngularVelocity.Magnitude > 50 then
+                LastPosition = PrimaryPart.CFrame
+            end
+        end)
+    end)
+    table.insert(connections, localHeartbeatConn)
+end
+
+local function AFOFF()
+    if not antiflingEnabled then return end
+    antiflingEnabled = false
+    
+    -- Disconnect all connections
+    for _, connection in ipairs(connections) do
+        connection:Disconnect()
+    end
+    connections = {}
+    
+    game.StarterGui:SetCore("ChatMakeSystemMessage", {
+        Text = "Antifling disabled";
+        Color = Color3.fromRGB(0, 255, 0);
+    })
 end
 
 -- Kill Variable
@@ -1849,10 +1962,12 @@ local commands = {
     "players/plrs",
     "fly/f -- (req, tpwalk)",
     "unfly/uf",
-    "antilag",
+    "antilag/al",
+    "antikick/ak",
+    "antifling/af",
+    "unantifling/unaf",
     "emitteron/en",
     "emitteroff/ef",
-    "antikick",
     "fullbright/fb",
     "unfullbright/unfb",
     "bringunachored/bring ua",
@@ -1867,16 +1982,17 @@ local commands = {
     "walkspeed/ws [value]",
     "resetwalkspeed/resetws",
     "jumppower/jp [value]",
-    "infjump ",
     "tpwalk/tpw",
     "stoptpwalk/stpw",
     "tpwalkspeed/tpws [value]",
     "animationspeed/as [value]",
-    "grav [value]",
     "tpto [plr]",
-    "fakelag/flag",
+    "orbit",
+    "grav [value]",
     "activatealltools/aat",
     "dropalltools/dat",
+    "infjump ",
+    "fakelag/flag",
     "unfakelag/unflag",
     "hitbox [value]",
     "aimlock",
@@ -1904,15 +2020,20 @@ local commands = {
     "loopfling/lfling",
     "noclip",
     "clip",
+    "============",
     "voidprotection/vp",
     "disablevoidprotection/dvp",
     "telekinesis/tk",
     "susgui/ss",
     "f3x/fex",
+    "fakechat",
     "winobby",
     "floatparts",
+    "============",
+    "energize",
     "hugtool",
     "drawchat",
+    "============",
     "🍪",
 }
 
@@ -3976,103 +4097,215 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "Stopped Flying:\n"
+                result = "Started AntiFling:\n"
             end
-        elseif command:lower():sub(1,9) == "ringparts" or command:lower():sub(1,2) == "rp" then
+        elseif command:sub(1, 15) == "fakechat" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Obfffakechat/refs/heads/main/Fkaechat", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Started FakeChat:\n"
+            end
+        elseif command:sub(1, 15) == "energize" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet(('https://pastebin.com/raw/1p6xnBNf'),true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Just a random anims ui:\n"
+            end
+        elseif command:lower():sub(1, 5) == "orbit" then
             local args = {}
             for arg in command:gmatch("%S+") do
                 table.insert(args, arg:lower())
             end
-            if not getgenv().RingParts then
-                -- Initialize RingParts system
-                getgenv().RingParts = {
-                    Enabled = false,
-                    Radius = 50,
-                    Strength = 1000,
-                    Parts = {},
-                    Connections = {}
+            -- Initialize or get existing orbit system
+            if not getgenv().OrbitSystem then
+                getgenv().OrbitSystem = {
+                    Target = nil,
+                    Radius = 10,
+                    Speed = 2,
+                    Angle = 0,
+                    Connection = nil,
+                    Running = false
                 }
-                local function isValidPart(part)
-                    return part:IsA("BasePart") and not part.Anchored 
-                           and not part:IsDescendantOf(game.Players.LocalPlayer.Character)
-                           and part.Parent ~= workspace.Terrain
+            end
+            local orbit = getgenv().OrbitSystem
+            -- Handle subcommands
+            if #args == 1 then
+                -- Show status if no subcommands
+                result = "Orbit System Status:\n"
+                      .. "Target: " .. (orbit.Target and orbit.Target.Name or "None") .. "\n"
+                      .. "Radius: " .. orbit.Radius .. "\n"
+                      .. "Speed: " .. orbit.Speed .. "\n"
+                      .. "Running: " .. (orbit.Running and "YES" or "NO") .. "\n\n"
+                      .. "Commands:\n"
+                      .. "orbit [player] - Orbit around player\n"
+                      .. "orbit stop - Stop orbiting\n"
+                      .. "orbit radius [value] - Change orbit distance\n"
+                      .. "orbit speed [value] - Change orbit speed"
+            elseif args[2] == "stop" then
+                -- Stop orbiting
+                if orbit.Connection then
+                    orbit.Connection:Disconnect()
+                    orbit.Connection = nil
                 end
-                -- Collect all existing parts
-                for _, part in pairs(workspace:GetDescendants()) do
-                    if isValidPart(part) then
-                        table.insert(getgenv().RingParts.Parts, part)
-                    end
-                end
-                -- Set up connections for new/removed parts
-                table.insert(getgenv().RingParts.Connections, workspace.DescendantAdded:Connect(function(part)
-                    if isValidPart(part) then
-                        table.insert(getgenv().RingParts.Parts, part)
-                    end
-                end))
-                table.insert(getgenv().RingParts.Connections, workspace.DescendantRemoving:Connect(function(part)
-                    local index = table.find(getgenv().RingParts.Parts, part)
-                    if index then
-                        table.remove(getgenv().RingParts.Parts, index)
-                    end
-                end))
-                -- Main effect loop
-                table.insert(getgenv().RingParts.Connections, game:GetService("RunService").Heartbeat:Connect(function()
-                    if not getgenv().RingParts.Enabled then return end
-                    if not game.Players.LocalPlayer.Character then return end
-                    local root = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                    if not root then return end
-                    local center = root.Position
-                    local radius = getgenv().RingParts.Radius
-                    local strength = getgenv().RingParts.Strength
-                    for _, part in pairs(getgenv().RingParts.Parts) do
-                        if part and part.Parent then
-                            local pos = part.Position
-                            local dir = (pos - center).Unit
-                            local flatDir = Vector3.new(dir.X, 0, dir.Z).Unit
-                            
-                            -- Calculate target position in a circle around player
-                            local angle = math.atan2(flatDir.Z, flatDir.X) + 0.05
-                            local targetPos = center + Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
-                            
-                            -- Apply velocity toward target position
-                            part.Velocity = (targetPos - pos).Unit * strength
-                            part.RotVelocity = Vector3.new(0, 50, 0)
-                        end
-                    end
-                end))
-                result = "RingParts system initialized! Use:\n"
-                       .. "rp on/off - Toggle\n"
-                       .. "rp radius [value] - Set radius\n"
-                       .. "rp speed [value] - Set speed\n"
-                       .. "rp stop - Stop Ring"
+                orbit.Running = false
+                orbit.Target = nil
+                result = "Stopped orbiting"
+            elseif args[2] == "radius" and tonumber(args[3]) then
+                -- Change orbit radius
+                orbit.Radius = tonumber(args[3])
+                result = "Orbit radius set to " .. orbit.Radius
+            elseif args[2] == "speed" and tonumber(args[3]) then
+                -- Change orbit speed
+                orbit.Speed = tonumber(args[3])
+                result = "Orbit speed set to " .. orbit.Speed
             else
-                -- Handle subcommands
-                if args[2] == "on" then
-                    getgenv().RingParts.Enabled = true
-                    result = "RingParts effect enabled"
-                elseif args[2] == "off" then
-                    getgenv().RingParts.Enabled = false
-                    result = "RingParts effect disabled"
-                elseif args[2] == "radius" and tonumber(args[3]) then
-                    getgenv().RingParts.Radius = tonumber(args[3])
-                    result = "Radius set to "..args[3]
-                elseif args[2] == "speed" and tonumber(args[3]) then
-                    getgenv().RingParts.Strength = tonumber(args[3])
-                    result = "Speed set to "..args[3]
-                elseif args[2] == "stop" then
-                    -- Clean up connections
-                    for _, conn in pairs(getgenv().RingParts.Connections) do
-                        conn:Disconnect()
+                -- Find player to orbit
+                local targetName = table.concat(args, " ", 2)
+                local foundPlayer = nil
+                -- Search for matching player (allows partial name matching)
+                for _, player in pairs(game.Players:GetPlayers()) do
+                    if player ~= game.Players.LocalPlayer and 
+                       player.Name:lower():find(targetName:lower(), 1, true) then
+                        foundPlayer = player
+                        break
                     end
-                    getgenv().RingParts = nil
-                    result = "RingParts system stopped and cleaned up"
-                else
-                    result = "RingParts is active. Current settings:\n"
-                           .. "Status: "..(getgenv().RingParts.Enabled and "ON" or "OFF").."\n"
-                           .. "Radius: "..getgenv().RingParts.Radius.."\n"
-                           .. "Strength: "..getgenv().RingParts.Strength.."\n"
-                           .. "Use subcommands: on/off, radius [value], speed [value], stop"
                 end
+                if foundPlayer then
+                    -- Stop any existing orbit
+                    if orbit.Connection then
+                        orbit.Connection:Disconnect()
+                    end
+                    -- Set new target
+                    orbit.Target = foundPlayer
+                    orbit.Angle = 0
+                    orbit.Running = true
+                    -- Create new orbit loop
+                    orbit.Connection = game:GetService("RunService").Heartbeat:Connect(function(dt)
+                        if not orbit.Running or not orbit.Target or not orbit.Target.Character then return end
+                        
+                        local targetRoot = orbit.Target.Character:FindFirstChild("HumanoidRootPart")
+                        local localChar = game.Players.LocalPlayer.Character
+                        if not targetRoot or not localChar then return end
+                        
+                        local localRoot = localChar:FindFirstChild("HumanoidRootPart")
+                        if not localRoot then return end
+                        
+                        -- Update angle based on speed and time
+                        orbit.Angle = orbit.Angle + (orbit.Speed * dt)
+                        if orbit.Angle > 2 * math.pi then
+                            orbit.Angle = orbit.Angle - (2 * math.pi)
+                        end
+                        
+                        -- Calculate orbit position
+                        local offset = Vector3.new(
+                            math.cos(orbit.Angle) * orbit.Radius,
+                            0,
+                            math.sin(orbit.Angle) * orbit.Radius
+                        )
+                        
+                        -- Apply movement
+                        localRoot.CFrame = CFrame.new(targetRoot.Position + offset, targetRoot.Position)
+                    end)
+                    result = "Now orbiting " .. foundPlayer.Name
+                else
+                    result = "Player not found or invalid command. Usage:\n"
+                          .. "orbit [player] - Orbit around player\n"
+                          .. "orbit stop - Stop orbiting\n"
+                          .. "orbit radius [value] - Change orbit distance\n"
+                          .. "orbit speed [value] - Change orbit speed"
+                end
+            end
+        elseif command:sub(1, 15) == "antifling" then
+            local luaCode = command:sub(16)
+            local func, err = AFON()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Started AntiFling:\n"
+            end
+        elseif command:sub(1, 15) == "af" then
+            local luaCode = command:sub(16)
+            local func, err = AFON()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Started AntiFling:\n"
+            end
+        elseif command:sub(1, 15) == "unantifling" then
+            local luaCode = command:sub(16)
+            local func, err = AFOFF()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Stopped AntiFling:\n"
+            end
+        elseif command:sub(1, 15) == "unaf" then
+            local luaCode = command:sub(16)
+            local func, err = AFOFF()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Stopped AntiFling:\n"
+            end
+        elseif command:sub(1, 15) == "ringparts" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/SuperRing/refs/heads/main/RingPart"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "RingParts Started:\n"
+            end
+        elseif command:sub(1, 15) == "rp" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/SuperRing/refs/heads/main/RingPart"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "RingParts Started:\n"
             end
         elseif command:lower():sub(1,5) == "kill " then
             local playerName = command:sub(6):match("^%s*(.-)%s*$") -- Trim whitespace
@@ -4182,7 +4415,33 @@ end
             else
                 result = "AntiKick Started:\n"
             end
+        elseif command:sub(1, 15) == "ak" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/AntkickLol/refs/heads/main/Antikicklol"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "AntiKick Started:\n"
+            end
         elseif command:sub(1, 15) == "antilag" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet('https://raw.githubusercontent.com/xSejker/AntilagFixedd/main/README.md',true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "AntiLag Started:\nRecommended To Use FullBright"
+            end
+        elseif command:sub(1, 15) == "al" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet('https://raw.githubusercontent.com/xSejker/AntilagFixedd/main/README.md',true))()
             if func then
