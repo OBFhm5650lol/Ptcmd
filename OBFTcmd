@@ -1017,7 +1017,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (v1.4)"
+collapsedLabel.Text = "TCmd (v1.5)"
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -1960,6 +1960,10 @@ local commands = {
     "cmds",
     "clear",
     "players/plrs",
+    "view [plr]",
+    "unview",
+    "zoom [value]",
+    "nofog",
     "fly/f -- (req, tpwalk)",
     "unfly/uf",
     "antilag/al",
@@ -2007,8 +2011,8 @@ local commands = {
     "hitblox",
     "xray",
     "unxray",
-    "dex",
-    "inf",
+    "dexexplorer/dex",
+    "infiniteyield/inf",
     "namelessadmin/na",
     "namelessadminv2/nav2",
     "sit",
@@ -3627,7 +3631,20 @@ end
             end
         elseif command:sub(1, 13) == "dex" then
             local luaCode = command:sub(14)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/realredz/DEX-Explorer/refs/heads/main/Mobile.lua"))()
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/peyton2465/Dex/master/out.lua"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "DexExplorerIsActive:\n"
+            end
+        elseif command:sub(1, 13) == "dexexplorer" then
+            local luaCode = command:sub(14)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/peyton2465/Dex/master/out.lua"))()
             if func then
                 local success, execResult = pcall(func)
                 if success then
@@ -3639,6 +3656,19 @@ end
                 result = "DexExplorerIsActive:\n"
             end
         elseif command:sub(1, 13) == "inf" then
+            local luaCode = command:sub(14)
+            local func, err = loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "InfyieldIsActive:\n"
+            end
+        elseif command:sub(1, 13) == "infiniteyield" then
             local luaCode = command:sub(14)
             local func, err = loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
             if func then
@@ -4098,6 +4128,103 @@ end
                 end
             else
                 result = "Started AntiFling:\n"
+            end
+        elseif command:sub(1, 5) == "nofog" then -- removes or pushes fog far away
+            local atmosphere = game:GetService("Lighting"):FindFirstChildOfClass("Atmosphere")
+            local fogEnd = 1000000 -- Very far distance (effectively removes fog)
+            
+            if atmosphere then
+                -- Save original fog settings if we haven't already
+                if not _originalFogSettings then
+                    _originalFogSettings = {
+                        Density = atmosphere.Density,
+                        Offset = atmosphere.Offset,
+                        Color = atmosphere.Color,
+                        Decay = atmosphere.Decay,
+                        Glare = atmosphere.Glare,
+                        Haze = atmosphere.Haze
+                    }
+                end
+                
+                -- Disable fog effects
+                atmosphere.Density = 0
+                atmosphere.Offset = 0
+                atmosphere.Decay = Color3.new(1, 1, 1)
+                atmosphere.Glare = 0
+                atmosphere.Haze = 0
+                
+                result = "Fog has been disabled"
+            else
+                -- If no Atmosphere exists, try adjusting the global Lighting fog
+                local lighting = game:GetService("Lighting")
+                if not _originalFogSettings then
+                    _originalFogSettings = {
+                        FogEnd = lighting.FogEnd,
+                        FogStart = lighting.FogStart
+                    }
+                end
+                
+                lighting.FogEnd = fogEnd
+                lighting.FogStart = fogEnd - 100
+                
+                result = "GobalFog Is Pushed"
+            end
+        elseif command:sub(1, 5) == "zoom " then -- changes the camera zoom amount
+            local zoomAmount = command:sub(6)
+            local zoomValue = tonumber(zoomAmount)
+            if zoomValue then
+                zoomValue = math.clamp(zoomValue, 0.5, 400)
+                local player = game:GetService("Players").LocalPlayer
+                if player then
+                    -- Set zoom limits directly on the player
+                    player.CameraMaxZoomDistance = zoomValue
+                    player.CameraMinZoomDistance = math.min(zoomValue, 0.5)
+                    -- Optional: reset camera type and subject just in case
+                    local camera = workspace.CurrentCamera
+                    if camera then
+                        camera.CameraType = Enum.CameraType.Custom
+                        if player.Character and player.Character:FindFirstChild("Humanoid") then
+                            camera.CameraSubject = player.Character:FindFirstChild("Humanoid")
+                        end
+                    end
+                    result = "Zoom set to: " .. zoomValue
+                else
+                    result = "Error: Local player not found"
+                end
+            else
+                result = "Invalid zoom amount. Please enter a number (e.g., 'zoom 20')"
+            end
+        elseif command:sub(1, 5) == "view " then
+            local playerName = command:sub(6)
+            local targetPlayer
+            for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
+                if player.Name:lower():find(playerName:lower(), 1, true) then
+                    targetPlayer = player
+                    break
+                end
+            end
+            if targetPlayer and targetPlayer.Character then
+                local humanoid = targetPlayer.Character:FindFirstChild("Humanoid")
+                if humanoid then
+                    local camera = workspace.CurrentCamera
+                    camera.CameraType = Enum.CameraType.Custom
+                    camera.CameraSubject = humanoid
+                    result = "Now viewing player: " .. targetPlayer.Name
+                else
+                    result = "Player " .. targetPlayer.Name .. " has no humanoid"
+                end
+            else
+                result = "Player not found or has no character: " .. playerName
+            end
+        elseif command:sub(1, 7) == "unview" then
+            local camera = workspace.CurrentCamera
+            local localPlayer = game:GetService("Players").LocalPlayer
+            if localPlayer.Character then
+                camera.CameraType = Enum.CameraType.Custom
+                camera.CameraSubject = localPlayer.Character:FindFirstChild("Humanoid")
+                result = "Stopped viewing player"
+            else
+                result = "Cannot reset view — no local character found"
             end
         elseif command:sub(1, 15) == "fakechat" then
             local luaCode = command:sub(16)
