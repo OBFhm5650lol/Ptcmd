@@ -607,7 +607,7 @@ function showNotification(title, message, duration, color)
 end
 
 -- Example usage:
-showNotification("LOADING", "76 commands has been loaded", 3, Color3.fromRGB(0, 200, 100))
+showNotification("LOADING", "79 commands has been loaded", 3, Color3.fromRGB(0, 200, 100))
 task.wait(1.5)
 showNotification("WELCOME", "Welcome to TCMD! Enjoy >:33", 8, Color3.fromRGB(0, 170, 255))
 task.wait()
