@@ -1,5 +1,4 @@
-ue))()
-end)-- Services
+-- Services
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
