@@ -780,7 +780,7 @@ function showNotification(title, message, duration, color)
 end
 
 -- Example usage with different animations
-showNotification("System Alert", "88 Cmds Are Loaded", 3, Color3.fromRGB(0, 200, 100))
+showNotification("System Alert", "93 Cmds Are Loaded", 3, Color3.fromRGB(0, 200, 100))
 task.wait(4)
 showNotification("Welcome To TCMD >:33", "type in [cmds] btw :3", 3, Color3.fromRGB(0, 170, 255))
 task.wait()
@@ -903,8 +903,8 @@ local success, err = pcall(function()
 
         -- Create a Sound instance
         local typingSound = Instance.new("Sound")
-        typingSound.SoundId = "rbxassetid://9120299810" -- Replace with your sound ID
-        typingSound.Volume = 0.5 -- Adjust volume as needed
+        typingSound.SoundId = "rbxassetid://177266782" -- Replace with your sound ID
+        typingSound.Volume = 0.1 -- Adjust volume as needed
         typingSound.Parent = screenGui
 
         -- Create Main Frame
@@ -1040,7 +1040,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (v1.7)"
+collapsedLabel.Text = "TCmd (v1.8)"
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -2022,7 +2022,7 @@ local commands = {
     "fakelag/flag",
     "unfakelag/unflag",
     "hitbox [value]",
-    "aimlock",
+    "aimassist/aim",
     "esp",
     "boxesp/besp",
     "disableboxesp/dbesp",
@@ -2058,8 +2058,9 @@ local commands = {
     "floatparts",
     "============",
     "afem (req, R15)",
+    "invistoggle",
     "pshade",
-    "rochips panel/rc",
+    "rochips/rc",
     "control npc/cn",
     "moveparts/mp",
     "energize/ee",
@@ -4209,7 +4210,7 @@ end
             end
         elseif command:sub(1, 15) == "pshade" then
             local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet('https://pastebin.com/raw/3Rnd9rHf'))()
+            local func, err = loadstring(game:HttpGet(('https://pastefy.app/xXkUxA0P/raw'),true))()
             if func then
                 local success, execResult = pcall(func)
                 if success then
@@ -4219,6 +4220,19 @@ end
                 end
             else
                 result = "your device is overheating at (109.4°F):\nGo Sub To @Im_Patrick"
+            end
+        elseif command:sub(1, 15) == "invistoggle" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet('https://pastebin.com/raw/3Rnd9rHf'))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Started Invistoggle:\n"
             end
         elseif command:sub(1, 15) == "moveparts" then
             local luaCode = command:sub(16)
@@ -4231,7 +4245,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "SMovePartsStarted:\nGo Sub To @Im_Patrick"
+                result = "MovePartsStarted:\nGo Sub To @Im_Patrick"
             end
         elseif command:sub(1, 15) == "mp" then
             local luaCode = command:sub(16)
@@ -4244,7 +4258,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "Started MoveParts:\n"
+                result = "MovePartsStarted:\nGo Sub To @Im_Patrick"
             end
         elseif command:sub(1, 5) == "nofog" then -- removes or pushes fog far away
             local atmosphere = game:GetService("Lighting"):FindFirstChildOfClass("Atmosphere")
@@ -4382,8 +4396,8 @@ end
             else
                 result = "Just a random anims ui:\n"
             end
-        elseif command:sub(1, 15) == "afem" then
-            local luaCode = command:sub(16)
+        elseif command:sub(1, 16) == "afem" then
+            local luaCode = command:sub(17)
             local func, err = loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-AFEM-14048"))()
             if func then
                 local success, execResult = pcall(func)
@@ -4841,7 +4855,88 @@ end
             else
                 result = "FakeLag Stopped:\n"
             end
-        elseif command:sub(1, 7) == "hitbox " then -- Expands HRP and Head hitbox with visual and collision modifications
+        elseif command:lower():sub(1, 8) == "aimassist" or command:lower():sub(1, 3) == "aim" then
+            local Players = game:GetService("Players")
+            local RunService = game:GetService("RunService")
+            local Camera = workspace.CurrentCamera
+            local LocalPlayer = Players.LocalPlayer
+            local Mouse = LocalPlayer:GetMouse()
+            _G.AimAssistSettings = _G.AimAssistSettings or {
+                Enabled = false,
+                FOV = 30,
+                ShowFOV = false,
+                Strength = 0.5,
+                FOVCircle = nil,
+                CurrentTarget = nil
+            }
+            -- FOV Circle Draw
+            if not _G.AimAssistSettings.FOVCircle then
+                local fovCircle = Drawing.new("Circle")
+                fovCircle.Color = Color3.fromRGB(255, 0, 0)
+                fovCircle.Thickness = 1
+                fovCircle.Filled = false
+                fovCircle.Transparency = 0.6
+                fovCircle.Visible = _G.AimAssistSettings.ShowFOV
+                _G.AimAssistSettings.FOVCircle = fovCircle
+                RunService.RenderStepped:Connect(function()
+                    if _G.AimAssistSettings.FOVCircle then
+                        local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                        _G.AimAssistSettings.FOVCircle.Position = center
+                        _G.AimAssistSettings.FOVCircle.Radius = _G.AimAssistSettings.FOV
+                        _G.AimAssistSettings.FOVCircle.Visible = _G.AimAssistSettings.ShowFOV
+                    end
+                end)
+            end
+            -- Assist Logic
+            if not _G.AimAssistConnection then
+                _G.AimAssistConnection = RunService.RenderStepped:Connect(function()
+                    if not _G.AimAssistSettings.Enabled then return end
+                    local closest, closestDist = nil, _G.AimAssistSettings.FOV
+                    for _, player in ipairs(Players:GetPlayers()) do
+                        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+                            local head = player.Character.Head
+                            local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                            local dist = (Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                            if onScreen and dist < closestDist then
+                                closest = head
+                                closestDist = dist
+                            end
+                        end
+                    end
+                    _G.AimAssistSettings.CurrentTarget = closest
+                    if closest then
+                        local direction = (closest.Position - Camera.CFrame.Position).Unit
+                        local newCF = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + direction)
+                        Camera.CFrame = Camera.CFrame:Lerp(newCF, _G.AimAssistSettings.Strength)
+                    end
+                end)
+            end
+            -- Command handler
+            local args = command:split(" ")
+            local sub = args[2]
+            local value = tonumber(args[3])
+            local res = ""
+            if not sub then
+                _G.AimAssistSettings.Enabled = not _G.AimAssistSettings.Enabled
+                res = "AimAssist " .. (_G.AimAssistSettings.Enabled and "Enabled" or "Disabled")
+            elseif sub == "fov" and value then
+                _G.AimAssistSettings.FOV = math.clamp(value, 10, 500)
+                res = "FOV set to " .. _G.AimAssistSettings.FOV
+            elseif sub == "showfov" then
+                _G.AimAssistSettings.ShowFOV = not _G.AimAssistSettings.ShowFOV
+                res = "FOV circle " .. (_G.AimAssistSettings.ShowFOV and "shown" or "hidden")
+            elseif sub == "strength" and value then
+                _G.AimAssistSettings.Strength = math.clamp(value, 0.1, 1)
+                res = "Aim strength set to " .. _G.AimAssistSettings.Strength
+            else
+                res = [[AimAssist Usage:
+        aimassist - toggle
+        aimassist fov [number] - set FOV size
+        aimassist strength [0.1 - 1] - set lock-on smoothness
+        aimassist showfov - toggle FOV visibility]]
+            end
+            return res
+        elseif command:sub(1, 7) == "hitbox " then
             local valueStr = command:sub(8)
             local value = tonumber(valueStr)
             local localPlayer = game.Players.LocalPlayer
@@ -5005,19 +5100,7 @@ end
             else
                 result = "Dropped All Tools:\n"
             end
-        elseif command:sub(1, 15) == "aimlock" then
-            local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/AimAssistRael/refs/heads/main/Aimlock"))()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "AimLockIsActive:\n"
-            end
+
         elseif command:sub(1, 14) == "hitbox" then
             local luaCode = command:sub(15)
             local func, err = hitboxeson()
