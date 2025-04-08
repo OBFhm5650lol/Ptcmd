@@ -780,7 +780,7 @@ function showNotification(title, message, duration, color)
 end
 
 -- Example usage with different animations
-showNotification("System Alert", "99 Cmds Are Loaded almost at a 100 lol", 3, Color3.fromRGB(0, 200, 100))
+showNotification("System Alert", "110 Cmds Are Loaded", 3, Color3.fromRGB(0, 200, 100))
 task.wait(4)
 showNotification("Welcome To TCMD >:33", "type in [cmds] btw :3", 3, Color3.fromRGB(0, 170, 255))
 task.wait()
@@ -1040,7 +1040,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (v1.9)"
+collapsedLabel.Text = "TCmd (v2.0)"
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -1314,6 +1314,197 @@ local function UnFly()
     humanoid.PlatformStand = false
 end
 
+-- GravityInverter
+local player = game.Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+-- Physics Settings
+local GRAVITY_MULTIPLIER = 1.5 -- Visible but not too fast
+local INITIAL_BOOST = 10 -- Gentle push to start
+local MAX_SPEED = 20 -- Maximum upward speed
+local SIMULATION_RADIUS = 5000 -- Large area of effect
+
+-- System Variables
+local invertedParts = {}
+local connection = nil
+local heartbeatConnection = nil
+
+local function cleanUpForces(part)
+    for _, child in ipairs(part:GetChildren()) do
+        if child:IsA("BodyForce") or child:IsA("BodyVelocity") then
+            child:Destroy()
+        end
+    end
+end
+
+local function applyUpwardForce()
+    -- Ensure we can affect distant parts
+    sethiddenproperty(player, "SimulationRadius", SIMULATION_RADIUS)
+    sethiddenproperty(player, "MaxSimulationRadius", SIMULATION_RADIUS)
+    
+    for part, data in pairs(invertedParts) do
+        if part and part.Parent then
+            -- Calculate upward force based on part's mass
+            local force = part:GetMass() * Workspace.Gravity * GRAVITY_MULTIPLIER
+            
+            -- Apply force while respecting max speed
+            if part.Velocity.Y < MAX_SPEED then
+                part:ApplyImpulse(Vector3.new(0, force * 0.016, 0)) -- 0.016 ≈ 1/60 for frame independence
+            end
+            
+            -- Ensure parts don't get stuck
+            if part.Velocity.Y < 5 then
+                part.Velocity = Vector3.new(0, 5, 0)
+            end
+        else
+            invertedParts[part] = nil
+        end
+    end
+end
+
+local function invertGravity(part)
+    if part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(player.Character) then
+        if not invertedParts[part] then
+            -- Store original state
+            invertedParts[part] = {
+                CanCollide = part.CanCollide,
+                CustomPhysicalProperties = part.CustomPhysicalProperties
+            }
+            
+            -- Clean existing forces
+            cleanUpForces(part)
+            
+            -- Configure part physics
+            part.CanCollide = false
+            part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+            
+            -- Initial gentle push
+            part.Velocity = Vector3.new(0, INITIAL_BOOST, 0)
+            
+            -- Add permanent upward force
+            local bodyForce = Instance.new("BodyForce")
+            bodyForce.Force = Vector3.new(0, part:GetMass() * Workspace.Gravity * GRAVITY_MULTIPLIER, 0)
+            bodyForce.Parent = part
+            invertedParts[part].bodyForce = bodyForce
+        end
+    end
+end
+
+local function restoreGravity(part)
+    if invertedParts[part] then
+        cleanUpForces(part)
+        part.CanCollide = invertedParts[part].CanCollide
+        part.CustomPhysicalProperties = invertedParts[part].CustomPhysicalProperties
+        part.Velocity = Vector3.new(0, 0, 0)
+        invertedParts[part] = nil
+    end
+end
+
+function GravOn()
+    -- Set physics range
+    sethiddenproperty(player, "SimulationRadius", SIMULATION_RADIUS)
+    
+    -- Process existing parts
+    for _, part in ipairs(Workspace:GetDescendants()) do
+        invertGravity(part)
+    end
+    
+    -- Continuous force application
+    if heartbeatConnection then heartbeatConnection:Disconnect() end
+    heartbeatConnection = RunService.Heartbeat:Connect(applyUpwardForce)
+    
+    -- Detect new parts
+    if connection then connection:Disconnect() end
+    connection = Workspace.DescendantAdded:Connect(invertGravity)
+end
+
+function GravOff()
+    -- Clean up
+    if heartbeatConnection then
+        heartbeatConnection:Disconnect()
+        heartbeatConnection = nil
+    end
+    
+    for part in pairs(invertedParts) do
+        if part.Parent then
+            restoreGravity(part)
+        end
+    end
+    
+    invertedParts = {}
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+end
+
+-- VoidProtection
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
+
+local monitoring = false
+local connection
+local highestY = hrp.Position.Y
+local lastPropulsionHeight = 0
+local consecutiveBounces = 0
+
+-- Function to check if player is on a platform
+local function isOnPlatform()
+    if not humanoid then return false end
+    return humanoid.FloorMaterial ~= Enum.Material.Air
+end
+
+function VoidProtectionOn()
+    if monitoring then return end
+    monitoring = true
+
+    connection = RunService.Heartbeat:Connect(function()
+        if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+
+        local currentY = hrp.Position.Y
+
+        -- Reset system if player is on a platform
+        if isOnPlatform() then
+            highestY = currentY
+            consecutiveBounces = 0
+            return
+        end
+
+        -- Update the highest point if we're ascending
+        if hrp.Velocity.Y > 0 then
+            highestY = currentY
+        end
+
+        -- Check if we've fallen below the void level
+        if currentY <-105 then
+            local fallDistance = highestY - currentY
+            
+            -- Increase bounce strength based on consecutive bounces
+            consecutiveBounces = consecutiveBounces + 1
+            local bounceMultiplier = 2 + (consecutiveBounces * 0.5) -- Each bounce increases power by 50%
+            local bounceVelocity = math.clamp(fallDistance * bounceMultiplier, 100, 500)
+
+            hrp.Velocity = Vector3.new(0, bounceVelocity, 0)
+
+            -- Store the height we were propelled from
+            lastPropulsionHeight = currentY
+        end
+    end)
+end
+
+function VoidProtectionOff()
+    if connection then
+        connection:Disconnect()
+    end
+    monitoring = false
+end
+
 -- // Antifling \\ --
 local antiflingEnabled = false
 local connections = {}
@@ -1528,7 +1719,7 @@ function StartKillEffect(targetName)
         end
     end)
     
-    return true, "Executing kill effect on "..TargetPlayer.Name
+    return true, "Executing killing on "..TargetPlayer.Name
 end
 
 -- animation speed variable
@@ -1770,387 +1961,6 @@ end
 
 -- Create the AAT function in the global namespace
 getgenv().AAT = AAT
-
--- Cmdspanel
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-
--- Create ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CommandPanel"
-screenGui.ResetOnSpawn = false
-screenGui.Enabled = false  -- Start hidden
-screenGui.Parent = PlayerGui
-
--- Create Main Frame
-local frame = Instance.new("Frame")
-frame.Name = "Main"
-frame.Size = UDim2.new(0.3, 0, 0.4, 0)
-frame.Position = UDim2.new(0.35, 0, 0.3, 0)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-frame.BackgroundTransparency = 0.1
-frame.BorderSizePixel = 0
-frame.ClipsDescendants = true
-frame.Parent = screenGui
-
--- Rounded Corners
-local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 8)
-uiCorner.Parent = frame
-
--- Subtle Border
-local border = Instance.new("UIStroke")
-border.Color = Color3.fromRGB(80, 80, 90)
-border.Thickness = 1
-border.Transparency = 0.5
-border.Parent = frame
-
--- Pulsing Outline Effect
-local pulseOutline = Instance.new("UIStroke")
-pulseOutline.Color = Color3.fromRGB(150, 150, 150)
-pulseOutline.Thickness = 2
-pulseOutline.Transparency = 1
-pulseOutline.Parent = frame
-
--- Animation for pulsing effect
-local pulseAnimation
-local function startPulsing()
-    if pulseAnimation then pulseAnimation:Disconnect() end
-    
-    pulseAnimation = game:GetService("RunService").Heartbeat:Connect(function()
-        local time = os.clock()
-        local pulse = math.sin(time * 5) * 0.5 + 0.5  -- Creates a 0-1 oscillation
-        pulseOutline.Transparency = 1 - (pulse * 0.5)  -- Range 0.5-1 transparency
-        pulseOutline.Thickness = 2 + pulse  -- Range 2-3 thickness
-    end)
-end
-
--- EASIER DRAGGING IMPLEMENTATION
-local dragStartPos
-local frameStartPos
-local isDragging = false
-
--- Make the entire header draggable
-local header = Instance.new("Frame")
-header.Name = "Header"
-header.Size = UDim2.new(1, 0, 0.12, 0)
-header.Position = UDim2.new(0, 0, 0, 0)
-header.BackgroundTransparency = 1  -- Invisible but clickable
-header.ZIndex = 10  -- Ensure it's above other elements
-header.Parent = frame
-
--- Start dragging when clicking header
-header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        isDragging = true
-        dragStartPos = input.Position
-        frameStartPos = frame.Position
-        
-        -- Visual feedback
-        TweenService:Create(frame, TweenInfo.new(0.1), {
-            BackgroundTransparency = 0.05
-        }):Play()
-        
-        TweenService:Create(pulseOutline, TweenInfo.new(0.1), {
-            Color = Color3.fromRGB(200, 200, 200),
-            Thickness = 3
-        }):Play()
-
-        -- Set up drag end connection
-        local dragEndConnection
-        dragEndConnection = input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                isDragging = false
-                dragEndConnection:Disconnect()
-                
-                -- Return to normal appearance
-                TweenService:Create(frame, TweenInfo.new(0.1), {
-                    BackgroundTransparency = 0.1
-                }):Play()
-                
-                TweenService:Create(pulseOutline, TweenInfo.new(0.3), {
-                    Color = Color3.fromRGB(150, 150, 150)
-                }):Play()
-            end
-        end)
-    end
-end)
-
--- Update position while dragging
-UserInputService.InputChanged:Connect(function(input)
-    if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local mousePos = input.Position
-        local delta = mousePos - dragStartPos
-        frame.Position = UDim2.new(
-            frameStartPos.X.Scale,
-            frameStartPos.X.Offset + delta.X,
-            frameStartPos.Y.Scale,
-            frameStartPos.Y.Offset + delta.Y
-        )
-    end
-end)
-
--- Header visuals
-local headerBackground = Instance.new("Frame")
-headerBackground.Size = UDim2.new(1, 0, 1, 0)
-headerBackground.Position = UDim2.new(0, 0, 0, 0)
-headerBackground.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-headerBackground.BackgroundTransparency = 0.2
-headerBackground.BorderSizePixel = 0
-headerBackground.ZIndex = 1
-headerBackground.Parent = header
-
-local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0, 8)
-headerCorner.Parent = headerBackground
-
--- Title
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(0.7, 0, 0.8, 0)
-title.Position = UDim2.new(0.1, 0, 0.1, 0)
-title.BackgroundTransparency = 1
-title.Text = "TCMD | COMMAND LIST"
-title.TextColor3 = Color3.fromRGB(220, 220, 220)
-title.TextScaled = true
-title.Font = Enum.Font.GothamSemibold
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.ZIndex = 2
-title.Parent = header
-
--- Close Button
-local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0.1, 0, 0.7, 0)
-closeButton.Position = UDim2.new(0.88, 0, 0.15, 0)
-closeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
-closeButton.BackgroundTransparency = 0.7
-closeButton.Text = "×"
-closeButton.TextColor3 = Color3.fromRGB(220, 220, 220)
-closeButton.TextSize = 24
-closeButton.Font = Enum.Font.GothamBold
-closeButton.ZIndex = 2
-closeButton.Parent = header
-
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0.5, 0)
-closeCorner.Parent = closeButton
-
--- Close Button Effects
-closeButton.MouseEnter:Connect(function()
-    TweenService:Create(closeButton, TweenInfo.new(0.2), {
-        BackgroundTransparency = 0.5,
-        BackgroundColor3 = Color3.fromRGB(80, 80, 85),
-        TextColor3 = Color3.fromRGB(240, 240, 240)
-    }):Play()
-end)
-
-closeButton.MouseLeave:Connect(function()
-    TweenService:Create(closeButton, TweenInfo.new(0.2), {
-        BackgroundTransparency = 0.7,
-        BackgroundColor3 = Color3.fromRGB(60, 60, 65),
-        TextColor3 = Color3.fromRGB(220, 220, 220)
-    }):Play()
-end)
-
-closeButton.MouseButton1Click:Connect(function()
-    ShowCmds()  -- Toggle visibility
-end)
-
--- Command List
-local scrollingFrame = Instance.new("ScrollingFrame")
-scrollingFrame.Size = UDim2.new(0.95, 0, 0.85, 0)
-scrollingFrame.Position = UDim2.new(0.025, 0, 0.13, 0)
-scrollingFrame.BackgroundTransparency = 1
-scrollingFrame.ScrollBarThickness = 4
-scrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 110)
-scrollingFrame.Parent = frame
-
-local uiListLayout = Instance.new("UIListLayout")
-uiListLayout.Padding = UDim.new(0, 6)
-uiListLayout.Parent = scrollingFrame
-
-local uiPadding = Instance.new("UIPadding")
-uiPadding.PaddingLeft = UDim.new(0, 5)
-uiPadding.PaddingRight = UDim.new(0, 5)
-uiPadding.PaddingTop = UDim.new(0, 5)
-uiPadding.Parent = scrollingFrame
-
--- Sample Commands
-local commands = {
-    "cmds",
-    "clear",
-    "players/plrs",
-    "view [plr]",
-    "unview",
-    "zoom [value]",
-    "nofog",
-    "fly/f -- (req, tpwalk)",
-    "unfly/uf",
-    "antilag/al",
-    "antikick/ak",
-    "antifling/af",
-    "unantifling/unaf",
-    "emitteron/en",
-    "emitteroff/ef",
-    "fullbright/fb",
-    "unfullbright/unfb",
-    "bringunachored/bring ua",
-    "ringparts/rp",
-    "ringparts/rp radius [value]",
-    "ringparts/rp speed [value]",
-    "ringpartsv2/rpv2",
-    "blackhole/bh",
-    "disableblackhole/dbh",
-    "reset/re",
-    "loopkill/lkill -- (req, gun or sword)",
-    "kill [plr] -- (req, sword)",
-    "serverhop/shop",
-    "fov [value]",
-    "walkspeed/ws [value]",
-    "resetwalkspeed/resetws",
-    "jumppower/jp [value]",
-    "tpwalk/tpw",
-    "stoptpwalk/stpw",
-    "tpwalkspeed/tpws [value]",
-    "animationspeed/as [value]",
-    "tpto [plr]",
-    "orbit",
-    "grav [value]",
-    "activatealltools/aat",
-    "dropalltools/dat",
-    "infjump ",
-    "fakelag/flag",
-    "unfakelag/unflag",
-    "hitbox [value]",
-    "aimassist/aim",
-    "esp",
-    "boxesp/besp",
-    "disableboxesp/dbesp",
-    "nameesp/nesp",
-    "disablenameesp/dnesp",
-    "unesp",
-    "unctest",
-    "pcr",
-    "hitblox",
-    "xray",
-    "unxray",
-    "dexexplorer/dex",
-    "infiniteyield/inf",
-    "namelessadmin/na",
-    "namelessadminv2/nav2",
-    "sit",
-    "lay",
-    "enabletfling/etf",
-    "disabletfling/dtf",
-    "fling [plr]",
-    "flingall",
-    "loopfling/lfling",
-    "noclip",
-    "clip",
-    "============",
-    "voidprotection/vp",
-    "disablevoidprotection/dvp",
-    "telekinesis/tk",
-    "susgui/ss",
-    "f3x/fex",
-    "fakechat",
-    "winobby",
-    "floatparts",
-    "============",
-    "afem (req, R15)",
-    "invistoggle",
-    "pshade",
-    "rochips/rc",
-    "control npc/cn",
-    "moveparts/mp",
-    "energize/ee",
-    "hugtool",
-    "toolgiver",
-    "drawchat",
-    "============",
-    "🍪",
-}
-
--- Add commands to the list
-for i, cmd in ipairs(commands) do
-    local commandFrame = Instance.new("Frame")
-    commandFrame.Size = UDim2.new(1, 0, 0, 32)
-    commandFrame.BackgroundTransparency = 0.9
-    commandFrame.BackgroundColor3 = i % 2 == 0 and Color3.fromRGB(45, 45, 50) or Color3.fromRGB(35, 35, 40)
-    commandFrame.Parent = scrollingFrame
-    
-    local commandCorner = Instance.new("UICorner")
-    commandCorner.CornerRadius = UDim.new(0, 4)
-    commandCorner.Parent = commandFrame
-    
-    local commandLabel = Instance.new("TextLabel")
-    commandLabel.Size = UDim2.new(1, -10, 1, 0)
-    commandLabel.Position = UDim2.new(0, 10, 0, 0)
-    commandLabel.BackgroundTransparency = 1
-    commandLabel.Text = cmd
-    commandLabel.TextColor3 = Color3.fromRGB(200, 200, 210)
-    commandLabel.TextScaled = true
-    commandLabel.TextXAlignment = Enum.TextXAlignment.Left
-    commandLabel.Font = Enum.Font.Gotham
-    commandLabel.Parent = commandFrame
-    
-    -- Hover effects
-    commandFrame.MouseEnter:Connect(function()
-        TweenService:Create(commandFrame, TweenInfo.new(0.2), {
-            BackgroundTransparency = 0.85,
-            BackgroundColor3 = Color3.fromRGB(55, 55, 60)
-        }):Play()
-    end)
-    
-    commandFrame.MouseLeave:Connect(function()
-        TweenService:Create(commandFrame, TweenInfo.new(0.2), {
-            BackgroundTransparency = 0.9,
-            BackgroundColor3 = i % 2 == 0 and Color3.fromRGB(45, 45, 50) or Color3.fromRGB(35, 35, 40)
-        }):Play()
-    end)
-end
-
--- Update scrolling frame size
-uiListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, uiListLayout.AbsoluteContentSize.Y + 10)
-end)
-
--- Toggle function
-function ShowCmds()
-    screenGui.Enabled = not screenGui.Enabled
-    
-    if screenGui.Enabled then
-        -- Start animations when shown
-        startPulsing()
-        
-        -- Animate in
-        frame.Size = UDim2.new(0, 0, 0.4, 0)
-        frame.Position = UDim2.new(0.5, 0, 0.3, 0)
-        frame.BackgroundTransparency = 1
-        
-        TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0.3, 0, 0.4, 0),
-            Position = UDim2.new(0.35, 0, 0.3, 0),
-            BackgroundTransparency = 0.1
-        }):Play()
-    else
-        -- Stop animations when hidden
-        if pulseAnimation then
-            pulseAnimation:Disconnect()
-            pulseAnimation = nil
-        end
-        
-        -- Animate out
-        TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 0, 0.4, 0),
-            Position = UDim2.new(0.5, 0, 0.3, 0),
-            BackgroundTransparency = 1
-        }):Play()
-    end
-end
 
 -- Combined ESP Script
 local Players = game:GetService("Players")
@@ -2740,67 +2550,6 @@ function TPCheckpoints()
     end
     
     print("Teleportation sequence complete!")
-end
-
--- VoidProtection
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
-local VOID_HEIGHT = -100 -- Adjust this value based on your game's void height
-local TELEPORT_OFFSET = 5 -- Offset above the platform to teleport the player
-
-local enabled = false
-
-local function findNearbyPlatform(position)
-    -- Raycast downward to find a platform
-    local rayOrigin = Vector3.new(position.X, position.Y, position.Z)
-    local rayDirection = Vector3.new(0, -1000, 0) -- Raycast downward
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-    raycastParams.FilterDescendantsInstances = {Players.LocalPlayer.Character} -- Ignore the player's character
-
-    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-    
-    if raycastResult and raycastResult.Instance then
-        -- Found a platform, return its position
-        return raycastResult.Position + Vector3.new(0, TELEPORT_OFFSET, 0)
-    end
-    
-    return nil -- No platform found
-end
-
-local function checkVoid()
-    while enabled do
-        for _, player in ipairs(Players:GetPlayers()) do
-            local character = player.Character
-            if character then
-                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-                if humanoidRootPart then
-                    local position = humanoidRootPart.Position
-                    if position.Y < VOID_HEIGHT then
-                        -- Try to find a nearby platform
-                        local teleportPosition = findNearbyPlatform(position)
-                        if teleportPosition then
-                            character:SetPrimaryPartCFrame(CFrame.new(teleportPosition))
-                        else
-                            -- If no platform is found, teleport to a default position
-                            character:SetPrimaryPartCFrame(CFrame.new(0, TELEPORT_OFFSET, 0))
-                        end
-                    end
-                end
-            end
-        end
-        RunService.Stepped:wait()
-    end
-end
-
-local function TpVoidOn()
-    enabled = true
-    checkVoid()
-end
-
-local function TpVoidOff()
-    enabled = false
 end
 
 -- Black Hole Script Function
@@ -3532,6 +3281,7 @@ end
         originalTransparency = {} -- Clear the table
     end
 
+
     -- Function to handle input
     local function handleInput(input)
         local command = input.Text
@@ -3543,7 +3293,7 @@ end
         -- Simulate command execution
         local result = "Command not recognized."
         if command == "🍪" then
-            result = "🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪"
+            result = "🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪??🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪"
         elseif command == "clear" then
             outputText.Text = ""
             return
@@ -3740,7 +3490,7 @@ end
             end
         elseif command:sub(1, 18) == "cmds" then
             local luaCode = command:sub(18)
-            local func, err = ShowCmds()
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Cmdspaneldbsnsbsm/refs/heads/main/ShowCmdsPanellollol123123", true))()
             if func then
                 local success, execResult = pcall(func)
                 if success then
@@ -3801,59 +3551,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "Blackhole Is Disabled is enabled:\n"
-            end
-        elseif command:sub(1, 14) == "voidprotection" then
-            local luaCode = command:sub(15)
-            local func, err = TpVoidOn()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "VoidProtection Is Enabled:\nTry jumping off the void"
-            end
-        elseif command:sub(1, 14) == "disablevoidprotection" then
-            local luaCode = command:sub(15)
-            local func, err = TpVoidOff()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Disabled VoidProtection:\n"
-            end
-        elseif command:sub(1, 14) == "vp" then
-            local luaCode = command:sub(15)
-            local func, err = TpVoidOn()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "VoidProtection Is Enabled:\nTry jumping off the void"
-            end
-        elseif command:sub(1, 14) == "dvp" then
-            local luaCode = command:sub(15)
-            local func, err = TpVoidOff()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Disabled VoidProtection:\n"
+                result = "Blackhole Is Disabled:\n"
             end
         elseif command:sub(1,4) == "fov " then
             local fovValue = tonumber(command:sub(5))
@@ -4159,6 +3857,453 @@ end
                 end
             else
                 result = "Stopped Flying:\n"
+            end
+        elseif command:sub(1, 15) == "changerig" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/Bac0nHck/Scripts/refs/heads/main/ChangeRigType"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Changing Rig Type...:\n"
+            end
+        elseif command:sub(1, 15) == "rig" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/Bac0nHck/Scripts/refs/heads/main/ChangeRigType"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Changing Rig Type...:\n"
+            end
+        elseif command:sub(1, 15) == "invertgrav" then
+            local luaCode = command:sub(16)
+            local func, err = GravOn()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Inverting Gravity To UnachoredParts:\n"
+            end
+        elseif command:sub(1, 15) == "uninvertgrav" then
+            local luaCode = command:sub(16)
+            local func, err = GravOff()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Stopped Inverting Gravity To UnachoredParts:\n"
+            end
+        elseif command:sub(1, 15) == "voidprotection" then
+            local luaCode = command:sub(16)
+            local func, err = VoidProtectionOn()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Started VoidProtection:\nlocalplayer is not vulnerable to voids"
+            end
+        elseif command:sub(1, 15) == "voidprotectionoff" then
+            local luaCode = command:sub(16)
+            local func, err = VoidProtectionOff()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Stopped VoidProtection:\nlocalplayer is now vulnerable to voids"
+            end
+        elseif command:sub(1, 15) == "vp" then
+            local luaCode = command:sub(16)
+            local func, err = VoidProtectionOn()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Started VoidProtection:\nlocalplayer is not vulnerable to voids"
+            end
+        elseif command:sub(1, 15) == "dvp" then
+            local luaCode = command:sub(16)
+            local func, err = VoidProtectionOff()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Stopped VoidProtection:\nlocalplayer is now vulnerable to voids"
+            end
+        elseif command:sub(1, 8) == "uwuchat " then
+            local textToConvert = command:sub(9)
+            if textToConvert and #textToConvert > 0 then
+                local function uwuify(text)
+                    return text:gsub("[rl]", "w")
+                             :gsub("[RL]", "W")
+                             :gsub("n([aeiou])", "ny%1")
+                             :gsub("N([aeiouAEIOU])", "Ny%1")
+                             :gsub("ove", "uv")
+                             :gsub("th", "d")
+                             :gsub("!+", "~~")
+                             :gsub("%?+", "? owo")
+                             :gsub("%.+", " uwu")
+                end
+                
+                local suffixes = {" uwu", " >w<", " :3", " ^-^", " >-<", "~~"}
+                local uwuText = uwuify(textToConvert)..suffixes[math.random(#suffixes)]
+                
+                -- Send to actual chat
+                game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(uwuText, "All")
+                result = "Sent UwU message to chat!"
+            else
+                result = "Usage: uwuchat [text]\nExample: uwuchat Hello world!"
+            end
+        elseif command:sub(1, 10):lower() == "setuagrav " then
+            local gravityValue = tonumber(command:sub(11))
+            if gravityValue then
+                -- Set maximum simulation range
+                sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", 5000)
+                sethiddenproperty(game.Players.LocalPlayer, "MaxSimulationRadius", 5000)
+                
+                -- Clear previous modifications
+                if _G.CustomGravityForces then
+                    for part, force in pairs(_G.CustomGravityForces) do
+                        if part and part.Parent then force:Destroy() end
+                    end
+                end
+                
+                _G.CustomGravityForces = {}
+                local changed = 0
+                local partsProcessed = 0
+                local maxPartsPerFrame = 100 -- Process in chunks to prevent lag
+                
+                -- Create a list of all parts first to avoid nested loops
+                local partsToProcess = {}
+                for _, part in ipairs(workspace:GetDescendants()) do
+                    if part:IsA("BasePart") and not part.Anchored then
+                        table.insert(partsToProcess, part)
+                    end
+                end
+                
+                -- Process in chunks using RunService
+                local connection
+                connection = game:GetService("RunService").Heartbeat:Connect(function()
+                    local processed = 0
+                    while processed < maxPartsPerFrame and partsProcessed < #partsToProcess do
+                        partsProcessed = partsProcessed + 1
+                        local part = partsToProcess[partsProcessed]
+                        
+                        -- Remove existing forces
+                        for _, child in ipairs(part:GetChildren()) do
+                            if child:IsA("BodyForce") and child.Name == "CustomGravityForce" then
+                                child:Destroy()
+                            end
+                        end
+                        
+                        -- Apply new force
+                        local bodyForce = Instance.new("BodyForce")
+                        bodyForce.Name = "CustomGravityForce"
+                        
+                        if gravityValue == 0 then
+                            bodyForce.Force = Vector3.new(0, part:GetMass() * workspace.Gravity, 0)
+                            part.Velocity = Vector3.new(0, 0, 0)
+                            part.RotVelocity = Vector3.new(0, 0, 0)
+                        else
+                            bodyForce.Force = Vector3.new(0, part:GetMass() * workspace.Gravity * (gravityValue - 1), 0)
+                        end
+                        
+                        bodyForce.Parent = part
+                        _G.CustomGravityForces[part] = bodyForce
+                        changed = changed + 1
+                        processed = processed + 1
+                    end
+                    
+                    if partsProcessed >= #partsToProcess then
+                        connection:Disconnect()
+                        result = string.format("Successfully applied gravity to %d parts (Multiplier: %.2f)", changed, gravityValue)
+                    end
+                end)
+                
+                result = string.format("Processing %d parts... (%.1f%%)", #partsToProcess, 0)
+            else
+                result = "Invalid value! Usage: setuagrav [number]\nExample: setuagrav 0 (zero gravity), setuagrav 0.5 (half gravity), setuagrav 2.0 (double gravity)"
+            end
+        elseif command:sub(1, 11):lower() == "resetuagrav" then
+            if _G.CustomGravityForces then
+                local restored = 0
+                local maxPerFrame = 100
+                local totalToProcess = 0
+                
+                -- First count how many we need to process
+                for _ in pairs(_G.CustomGravityForces) do totalToProcess = totalToProcess + 1 end
+                
+                local processed = 0
+                local connection
+                connection = game:GetService("RunService").Heartbeat:Connect(function()
+                    local batch = 0
+                    for part, force in pairs(_G.CustomGravityForces) do
+                        if part and part.Parent then
+                            force:Destroy()
+                            restored = restored + 1
+                        end
+                        _G.CustomGravityForces[part] = nil
+                        processed = processed + 1
+                        batch = batch + 1
+                        
+                        if batch >= maxPerFrame then break end
+                    end
+                    
+                    if processed >= totalToProcess then
+                        connection:Disconnect()
+                        _G.CustomGravityForces = nil
+                        result = string.format("Removed custom gravity from %d parts", restored)
+                    else
+                        result = string.format("Resetting... (%d/%d)", processed, totalToProcess)
+                    end
+                end)
+            else
+                result = "No custom gravity forces to remove"
+            end
+        elseif command:sub(1, 15) == "bhop" then
+            local player = game:GetService("Players").LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoid = character:WaitForChild("Humanoid")
+            
+            -- Disconnect previous connection if exists
+            if _G.BHopConnection then
+                _G.BHopConnection:Disconnect()
+            end
+            
+            -- Create new connection
+            _G.BHopConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                if humanoid and humanoid.FloorMaterial ~= Enum.Material.Air then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end)
+            
+            -- Increase jump power
+            humanoid.JumpPower = 60
+            humanoid.JumpHeight = 8
+            
+            result = "Bunnyhop activated! Auto-jumping when touching ground."
+        elseif command:sub(1, 18) == "unbhop" then
+            if _G.BHopConnection then
+                _G.BHopConnection:Disconnect()
+                _G.BHopConnection = nil
+                
+                -- Reset jump power
+                local player = game:GetService("Players").LocalPlayer
+                if player.Character then
+                    local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        humanoid.JumpPower = 50
+                        humanoid.JumpHeight = 7.5
+                    end
+                end
+                
+                result = "Bunnyhop deactivated"
+            else
+                result = "Bunnyhop wasn't active"
+            end
+        elseif command:sub(1, 5) == "spin " then -- spins your character with adjustable speed
+            local spinSpeed = tonumber(command:sub(6)) or 20  -- Default speed if not specified
+            
+            -- Get player components
+            local player = game:GetService("Players").LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+            
+            -- Clean up any existing spin connection
+            if _G.SpinConnection then
+                _G.SpinConnection:Disconnect()
+                _G.SpinConnection = nil
+            end
+            
+            -- Create new spinning function
+            local spinFunction = function()
+                if humanoidRootPart and humanoidRootPart.Parent then
+                    humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
+                else
+                    if _G.SpinConnection then
+                        _G.SpinConnection:Disconnect()
+                        _G.SpinConnection = nil
+                    end
+                end
+            end
+            
+            -- Start spinning
+            _G.SpinConnection = game:GetService("RunService").Heartbeat:Connect(spinFunction)
+            
+            result = string.format("Spinning activated at speed: %d\n(Use 'unspin' to stop)", spinSpeed)
+        elseif command:sub(1, 7) == "unspin" then -- stops spinning
+            if _G.SpinConnection then
+                _G.SpinConnection:Disconnect()
+                _G.SpinConnection = nil
+                result = "Spinning stopped"
+            else
+                result = "No active spinning to stop"
+            end
+        elseif command:sub(1, 15) == "graballtools" then -- grabs all tools even if it needs robux or it's on the ground
+            local player = game:GetService("Players").LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            
+            if not humanoid then
+                result = "Error: No humanoid found in character"
+                return
+            end
+            local toolsCollected = 0
+            local toolsFailed = 0
+            local toolList = {}
+            -- Function to attempt collecting a tool
+            local function collectTool(tool)
+                if tool:IsA("Tool") and not tool.Parent:IsA("Backpack") and tool.Parent ~= character then
+                    -- Try normal collection first
+                    local success = pcall(function()
+                        tool.Parent = character
+                    end)
+                    
+                    if not success then
+                        -- If normal method fails, try alternative methods
+                        pcall(function()
+                            -- Try to clone the tool
+                            local clone = tool:Clone()
+                            clone.Parent = character
+                            tool = clone
+                        end)
+                    end
+                    if tool.Parent == character then
+                        toolsCollected = toolsCollected + 1
+                        table.insert(toolList, tool.Name)
+                        return true
+                    else
+                        toolsFailed = toolsFailed + 1
+                        return false
+                    end
+                end
+                return false
+            end
+            -- Collect tools from workspace
+            for _, tool in ipairs(game:GetService("Workspace"):GetDescendants()) do
+                collectTool(tool)
+            end
+            -- Collect tools from other players
+            for _, otherPlayer in ipairs(game:GetService("Players"):GetPlayers()) do
+                if otherPlayer ~= player and otherPlayer.Character then
+                    for _, tool in ipairs(otherPlayer.Character:GetDescendants()) do
+                        collectTool(tool)
+                    end
+                end
+            end
+            -- Collect tools from tool services
+            for _, service in ipairs(game:GetChildren()) do
+                if service:IsA("BackpackItem") or service:IsA("Tool") then
+                    collectTool(service)
+                end
+            end
+            -- Prepare result message
+            if toolsCollected > 0 then
+                result = string.format("Successfully collected %d tools:\n", toolsCollected) ..
+                         table.concat(toolList, ", ") ..
+                         (toolsFailed > 0 and string.format("\nFailed to collect %d tools", toolsFailed) or "")
+            else
+                result = "No tools collected. " .. 
+                         (toolsFailed > 0 and string.format("Failed to collect %d tools", toolsFailed) or "No tools found")
+            end
+        elseif command:sub(1, 15) == "gat" then -- grabs all tools even if it needs robux or it's on the ground
+            local player = game:GetService("Players").LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            
+            if not humanoid then
+                result = "Error: No humanoid found in character"
+                return
+            end
+            local toolsCollected = 0
+            local toolsFailed = 0
+            local toolList = {}
+            -- Function to attempt collecting a tool
+            local function collectTool(tool)
+                if tool:IsA("Tool") and not tool.Parent:IsA("Backpack") and tool.Parent ~= character then
+                    -- Try normal collection first
+                    local success = pcall(function()
+                        tool.Parent = character
+                    end)
+                    
+                    if not success then
+                        -- If normal method fails, try alternative methods
+                        pcall(function()
+                            -- Try to clone the tool
+                            local clone = tool:Clone()
+                            clone.Parent = character
+                            tool = clone
+                        end)
+                    end
+                    if tool.Parent == character then
+                        toolsCollected = toolsCollected + 1
+                        table.insert(toolList, tool.Name)
+                        return true
+                    else
+                        toolsFailed = toolsFailed + 1
+                        return false
+                    end
+                end
+                return false
+            end
+            -- Collect tools from workspace
+            for _, tool in ipairs(game:GetService("Workspace"):GetDescendants()) do
+                collectTool(tool)
+            end
+            -- Collect tools from other players
+            for _, otherPlayer in ipairs(game:GetService("Players"):GetPlayers()) do
+                if otherPlayer ~= player and otherPlayer.Character then
+                    for _, tool in ipairs(otherPlayer.Character:GetDescendants()) do
+                        collectTool(tool)
+                    end
+                end
+            end
+            -- Collect tools from tool services
+            for _, service in ipairs(game:GetChildren()) do
+                if service:IsA("BackpackItem") or service:IsA("Tool") then
+                    collectTool(service)
+                end
+            end
+            -- Prepare result message
+            if toolsCollected > 0 then
+                result = string.format("Successfully collected %d tools:\n", toolsCollected) ..
+                         table.concat(toolList, ", ") ..
+                         (toolsFailed > 0 and string.format("\nFailed to collect %d tools", toolsFailed) or "")
+            else
+                result = "No tools collected. " .. 
+                         (toolsFailed > 0 and string.format("Failed to collect %d tools", toolsFailed) or "No tools found")
             end
         elseif command:sub(1, 15) == "toolgiver" then
             local luaCode = command:sub(16)
