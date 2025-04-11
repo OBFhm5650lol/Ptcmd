@@ -1040,7 +1040,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (v2.0)"
+collapsedLabel.Text = "TCmd (v2.1)"
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -3858,6 +3858,32 @@ end
             else
                 result = "Stopped Flying:\n"
             end
+        elseif command:sub(1, 15) == "tornado" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/TornadoGuiIg/refs/heads/main/Srrylolitsobfuscatednomorestealing", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Started TornadoGui:\nWont work on some exec"
+            end
+        elseif command:sub(1, 15) == "td" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/TornadoGuiIg/refs/heads/main/Srrylolitsobfuscatednomorestealing", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Started TornadoGui:\nWont work on some exec"
+            end
         elseif command:sub(1, 15) == "changerig" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/Bac0nHck/Scripts/refs/heads/main/ChangeRigType"))()
@@ -3895,7 +3921,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "Inverting Gravity To UnachoredParts:\n"
+                result = "Inverting Gravity To UnachoredParts:\nWont Work On some Exec"
             end
         elseif command:sub(1, 15) == "uninvertgrav" then
             local luaCode = command:sub(16)
@@ -5000,6 +5026,32 @@ end
                 end
             else
                 result = "AntiLag Started:\n"
+            end
+        elseif command:sub(1, 15) == "antilag2" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Jxeybdfkhwnsantilagejbesnjdd/refs/heads/main/Al2", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "AntiLag Started:\n(rec, FullBright)"
+            end
+        elseif command:sub(1, 15) == "al2" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Jxeybdfkhwnsantilagejbesnjdd/refs/heads/main/Al2", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "AntiLag Started:\n(rec, FullBright)"
             end
         elseif command:sub(1, 15) == "loopkill" then
             local luaCode = command:sub(16)
