@@ -780,7 +780,7 @@ function showNotification(title, message, duration, color)
 end
 
 -- Example usage with different animations
-showNotification("System Alert", "110 Cmds Are Loaded", 3, Color3.fromRGB(0, 200, 100))
+showNotification("System Alert", "112 Cmds Are Loaded", 3, Color3.fromRGB(0, 200, 100))
 task.wait(4)
 showNotification("Welcome To TCMD >:33", "type in [cmds] btw :3", 3, Color3.fromRGB(0, 170, 255))
 task.wait()
