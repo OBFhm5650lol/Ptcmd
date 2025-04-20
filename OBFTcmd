@@ -3899,7 +3899,7 @@ end
             end
         elseif command:sub(1, 15) == "silverware" then
             local luaCode = command:sub(16)
-            local func, err = 
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/SilverWare/refs/heads/main/SW", true))()
             if func then
                 local success, execResult = pcall(func)
                 if success then
@@ -3912,7 +3912,7 @@ end
             end
         elseif command:sub(1, 15) == "sw" then
             local luaCode = command:sub(16)
-            local func, err = 
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/SilverWare/refs/heads/main/SW", true))()
             if func then
                 local success, execResult = pcall(func)
                 if success then
