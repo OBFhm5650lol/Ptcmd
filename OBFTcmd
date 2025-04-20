@@ -780,7 +780,7 @@ function showNotification(title, message, duration, color)
 end
 
 -- Example usage with different animations
-showNotification("System Alert", "112 Cmds Are Loaded", 3, Color3.fromRGB(0, 200, 100))
+showNotification("System Alert", "115 Cmds Are Loaded", 3, Color3.fromRGB(0, 200, 100))
 task.wait(4)
 showNotification("Welcome To TCMD >:33", "type in [cmds] btw :3", 3, Color3.fromRGB(0, 170, 255))
 task.wait()
@@ -1040,7 +1040,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (v2.1)"
+collapsedLabel.Text = "TCmd (v2.2)"
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -3858,6 +3858,71 @@ end
             else
                 result = "Stopped Flying:\n"
             end
+        elseif command:sub(1, 15) == "instantkill" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/InstantKillig/refs/heads/main/Coolkillguithingy", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "(req, sword):\n"
+            end
+        elseif command:sub(1, 15) == "ikill" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/InstantKillig/refs/heads/main/Coolkillguithingy", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "(req, sword):\n"
+            end
+        elseif command:sub(1, 15) == "infoviewer" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/randomstring0/Qwerty/refs/heads/main/qwerty31.lua"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "I have Ur IP address:\n"
+            end
+        elseif command:sub(1, 15) == "silverware" then
+            local luaCode = command:sub(16)
+            local func, err = 
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Started SilverWare:\n"
+            end
+        elseif command:sub(1, 15) == "sw" then
+            local luaCode = command:sub(16)
+            local func, err = 
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Started SilverWare:\n"
+            end
         elseif command:sub(1, 15) == "tornado" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/TornadoGuiIg/refs/heads/main/Srrylolitsobfuscatednomorestealing", true))()
@@ -3905,7 +3970,7 @@ end
                 if success then
                     result = "Executed successfully:\n" .. tostring(execResult)
                 else
-                    result = "Execution error:\n"
+                    result = "Changing Rig Type...:\n"
                 end
             else
                 result = "Changing Rig Type...:\n"
@@ -3944,7 +4009,7 @@ end
                 if success then
                     result = "Executed successfully:\n" .. tostring(execResult)
                 else
-                    result = "Execution error:\n"
+                    result = "Started VoidProtection:\nlocalplayer is not vulnerable to voids"
                 end
             else
                 result = "Started VoidProtection:\nlocalplayer is not vulnerable to voids"
@@ -3957,7 +4022,7 @@ end
                 if success then
                     result = "Executed successfully:\n" .. tostring(execResult)
                 else
-                    result = "Execution error:\n"
+                    result = "Stopped VoidProtection:\nlocalplayer is now vulnerable to voids"
                 end
             else
                 result = "Stopped VoidProtection:\nlocalplayer is now vulnerable to voids"
@@ -3970,7 +4035,7 @@ end
                 if success then
                     result = "Executed successfully:\n" .. tostring(execResult)
                 else
-                    result = "Execution error:\n"
+                    result = "Started VoidProtection:\nlocalplayer is not vulnerable to voids:\n"
                 end
             else
                 result = "Started VoidProtection:\nlocalplayer is not vulnerable to voids"
@@ -3983,7 +4048,7 @@ end
                 if success then
                     result = "Executed successfully:\n" .. tostring(execResult)
                 else
-                    result = "Execution error:\n"
+                    result = "Stopped VoidProtection:\nlocalplayer is now vulnerable to voids"
                 end
             else
                 result = "Stopped VoidProtection:\nlocalplayer is now vulnerable to voids"
@@ -4440,7 +4505,7 @@ end
                 if success then
                     result = "Executed successfully:\n" .. tostring(execResult)
                 else
-                    result = "Execution error:\n"
+                    result = "your device is overheating at (109.4°F):\nGo Sub To @Im_Patrick"
                 end
             else
                 result = "your device is overheating at (109.4°F):\nGo Sub To @Im_Patrick"
