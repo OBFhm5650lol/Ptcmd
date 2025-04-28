@@ -4,6 +4,16 @@ local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 local ContentProvider = game:GetService("ContentProvider")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local SoundService = game:GetService("SoundService")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
 
 -- Constants
 local INTRO_TEXT = "TCMD"
@@ -378,11 +388,6 @@ end
 freezeGame(freezeDuration)
 
 task.wait()
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local SoundService = game:GetService("SoundService")
 
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui")
@@ -871,12 +876,6 @@ local success, err = pcall(function()
     pcall(function()
     print("Script started")
 
-    -- Services
-    local Players = game:GetService("Players")
-    local UserInputService = game:GetService("UserInputService")
-    local RunService = game:GetService("RunService")
-    local TweenService = game:GetService("TweenService")
-    local SoundService = game:GetService("SoundService")
 
     -- Player
     local player = Players.LocalPlayer
@@ -1160,7 +1159,7 @@ print("MinimizeButton and CollapsedLabel created and parented by hm5650")
          end  
     end  
 
-    local player = game:GetService("Players").LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
