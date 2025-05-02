@@ -372,17 +372,17 @@ task.wait()
 local freezeDuration = 3 -- seconds to freeze the game
 
 local function freezeGame(duration)
-    -- Get the current time
     local startTime = os.clock()
     
-    -- Freeze the game by creating an infinite loop that lasts for the duration
     while os.clock() - startTime < duration do
         -- This loop will block all other Lua execution
-        -- Note: This only freezes Lua, not the physics engine
     end
     
     print("loaded all commands in " .. duration .. " seconds")
 end
+
+-- Call the freeze function
+freezeGame(freezeDuration)
 
 -- Call the freeze function
 freezeGame(freezeDuration)
@@ -1039,7 +1039,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (v2.2)"
+collapsedLabel.Text = "TCmd (v2.3)"
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -5320,83 +5320,115 @@ end
             local value = tonumber(valueStr)
             local localPlayer = game.Players.LocalPlayer
             
+            -- Table to track connections and original sizes
+            if not _G.HitboxManager then
+                _G.HitboxManager = {
+                    connections = {},
+                    originalSizes = {}
+                }
+            else
+                -- Clean up existing connections if re-running the command
+                for _, connection in pairs(_G.HitboxManager.connections) do
+                    connection:Disconnect()
+                end
+                _G.HitboxManager.connections = {}
+            end
+            
             if value then
                 if value == 0 then
                     -- Turn off hitboxes for all players
                     for _, player in ipairs(game.Players:GetPlayers()) do
                         if player ~= localPlayer then
-                            local character = player.Character or player.CharacterAdded:Wait()
-                            local hrp = character:FindFirstChild("HumanoidRootPart")
-                            local head = character:FindFirstChild("Head")
-                            
-                            -- Restore HRP properties
-                            if hrp and hrp:FindFirstChild("OriginalSize") then
-                                hrp.Size = hrp.OriginalSize.Value
-                                hrp.CanCollide = true
-                                hrp.Transparency = 0
-                                hrp.OriginalSize:Destroy()
-                            end
-                            
-                            -- Restore Head properties
-                            if head and head:FindFirstChild("OriginalSize") then
-                                head.Size = head.OriginalSize.Value
-                                head.CanCollide = true
-                                head.Transparency = 0
-                                head.OriginalSize:Destroy()
+                            local character = player.Character
+                            if character then
+                                local hrp = character:FindFirstChild("HumanoidRootPart")
+                                local head = character:FindFirstChild("Head")
+                                
+                                -- Restore HRP properties
+                                if hrp and _G.HitboxManager.originalSizes[hrp] then
+                                    hrp.Size = _G.HitboxManager.originalSizes[hrp]
+                                    hrp.CanCollide = true
+                                    hrp.Transparency = 0
+                                    _G.HitboxManager.originalSizes[hrp] = nil
+                                end
+                                
+                                -- Restore Head properties
+                                if head and _G.HitboxManager.originalSizes[head] then
+                                    head.Size = _G.HitboxManager.originalSizes[head]
+                                    head.CanCollide = true
+                                    head.Transparency = 0
+                                    _G.HitboxManager.originalSizes[head] = nil
+                                end
                             end
                         end
                     end
                     result = "Hitboxes turned off for all applicable players"
                 else
-                    -- Expand hitboxes based on team settings
-                    for _, player in ipairs(game.Players:GetPlayers()) do
-                        if player ~= localPlayer then
-                            -- Check team conditions
-                            local shouldModify = false
-                            if game.Teams and #game.Teams:GetTeams() > 0 then
-                                -- Team game - only modify enemies
-                                shouldModify = player.Team ~= localPlayer.Team
-                            else
-                                -- No teams - modify everyone except local player
-                                shouldModify = true
+                    -- Function to process a character
+                    local function processCharacter(player, character)
+                        if not character then return end
+                        
+                        local shouldModify = false
+                        if game.Teams and #game.Teams:GetTeams() > 0 then
+                            shouldModify = player.Team ~= localPlayer.Team
+                        else
+                            shouldModify = true
+                        end
+                        
+                        if shouldModify then
+                            local hrp = character:WaitForChild("HumanoidRootPart", 5)
+                            local head = character:FindFirstChild("Head")
+                            
+                            -- Handle HRP
+                            if hrp then
+                                if not _G.HitboxManager.originalSizes[hrp] then
+                                    _G.HitboxManager.originalSizes[hrp] = hrp.Size
+                                end
+                                hrp.Size = Vector3.new(value, value, value)
+                                hrp.CanCollide = false
+                                hrp.Transparency = 0.5
                             end
                             
-                            if shouldModify then
-                                local character = player.Character
-                                if character then
-                                    local hrp = character:FindFirstChild("HumanoidRootPart")
-                                    local head = character:FindFirstChild("Head")
-                                    
-                                    -- Handle HRP
-                                    if hrp then
-                                        if not hrp:FindFirstChild("OriginalSize") then
-                                            local originalSize = Instance.new("Vector3Value")
-                                            originalSize.Name = "OriginalSize"
-                                            originalSize.Value = hrp.Size
-                                            originalSize.Parent = hrp
-                                        end
-                                        hrp.Size = Vector3.new(value, value, value)
-                                        hrp.CanCollide = false
-                                        hrp.Transparency = 0.5
-                                    end
-                                    
-                                    -- Handle Head
-                                    if head then
-                                        if not head:FindFirstChild("OriginalSize") then
-                                            local originalSize = Instance.new("Vector3Value")
-                                            originalSize.Name = "OriginalSize"
-                                            originalSize.Value = head.Size
-                                            originalSize.Parent = head
-                                        end
-                                        head.Size = Vector3.new(value, value, value)
-                                        head.CanCollide = false
-                                        head.Transparency = 0.5
-                                    end
+                            -- Handle Head
+                            if head then
+                                if not _G.HitboxManager.originalSizes[head] then
+                                    _G.HitboxManager.originalSizes[head] = head.Size
                                 end
+                                head.Size = Vector3.new(value, value, value)
+                                head.CanCollide = false
+                                head.Transparency = 0.5
                             end
                         end
                     end
-                    result = "Hitboxes expanded to " .. value .. " Type in 0 if you want to reset"
+                    
+                    -- Process existing players
+                    for _, player in ipairs(game.Players:GetPlayers()) do
+                        if player ~= localPlayer then
+                            if player.Character then
+                                processCharacter(player, player.Character)
+                            end
+                            
+                            -- Connect to character added event
+                            table.insert(_G.HitboxManager.connections, player.CharacterAdded:Connect(function(character)
+                                processCharacter(player, character)
+                            end))
+                        end
+                    end
+                    
+                    -- Connect to player added event
+                    table.insert(_G.HitboxManager.connections, game.Players.PlayerAdded:Connect(function(player)
+                        if player ~= localPlayer then
+                            if player.Character then
+                                processCharacter(player, player.Character)
+                            end
+                            
+                            table.insert(_G.HitboxManager.connections, player.CharacterAdded:Connect(function(character)
+                                processCharacter(player, character)
+                            end))
+                        end
+                    end))
+                    
+                    result = "Hitboxes expanded to " .. value .. ". Type 'hitbox 0' to reset."
                 end
             else
                 result = "Invalid value. Usage: hitbox [number] or hitbox 0 to turn off"
