@@ -659,7 +659,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (2.4)" -- VZ
+collapsedLabel.Text = "TCmd (2.5)" -- VZ
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -945,75 +945,7 @@ function GravOff()
     end
 end
 
--- VoidProtection
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
-local humanoid = character:WaitForChild("Humanoid")
-
-local monitoring = false
-local connection
-local highestY = hrp.Position.Y
-local lastPropulsionHeight = 0
-local consecutiveBounces = 0
-
--- Function to check if player is on a platform
-local function isOnPlatform()
-    if not humanoid then return false end
-    return humanoid.FloorMaterial ~= Enum.Material.Air
-end
-
-function VoidProtectionOn()
-    if monitoring then return end
-    monitoring = true
-
-    connection = RunService.Heartbeat:Connect(function()
-        if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-
-        local currentY = hrp.Position.Y
-
-        -- Reset system if player is on a platform
-        if isOnPlatform() then
-            highestY = currentY
-            consecutiveBounces = 0
-            return
-        end
-
-        -- Update the highest point if we're ascending
-        if hrp.Velocity.Y > 0 then
-            highestY = currentY
-        end
-
-        -- Check if we've fallen below the void level
-        if currentY <-105 then
-            local fallDistance = highestY - currentY
-            
-            -- Increase bounce strength based on consecutive bounces
-            consecutiveBounces = consecutiveBounces + 1
-            local bounceMultiplier = 2 + (consecutiveBounces * 0.5) -- Each bounce increases power by 50%
-            local bounceVelocity = math.clamp(fallDistance * bounceMultiplier, 100, 500)
-
-            hrp.Velocity = Vector3.new(0, bounceVelocity, 0)
-
-            -- Store the height we were propelled from
-            lastPropulsionHeight = currentY
-        end
-    end)
-end
-
-function VoidProtectionOff()
-    if connection then
-        connection:Disconnect()
-    end
-    monitoring = false
-end
-
 -- Godmode variable
-
-
 -- Services
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -2865,7 +2797,7 @@ end
             else
                 result = "DexExplorerIsActive:\n"
             end
-        elseif command:sub(1, 13) == "inf" then
+        elseif command:sub(1, 13) == "iy" then
             local luaCode = command:sub(14)
             local func, err = loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
             if func then
@@ -2942,32 +2874,6 @@ end
                 end
             else
                 result = "Blackhole Is Enabled:\n"
-            end
-        elseif command:sub(1, 13) == "loopfling" then
-            local luaCode = command:sub(14)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/LFling/refs/heads/main/LoopFling", true))()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "LoopFlingIsActive:\n"
-            end
-        elseif command:sub(1, 13) == "lfling" then
-            local luaCode = command:sub(14)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/LFling/refs/heads/main/LoopFling", true))()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "LoopFlingIsActive:\n"
             end
         elseif command:sub(1, 15) == "dbh" then
             local luaCode = command:sub(16)
@@ -3377,58 +3283,6 @@ end
                 end
             else
                 result = "Stopped Inverting Gravity To UnachoredParts:\n"
-            end
-        elseif command:sub(1, 15) == "voidprotection" then
-            local luaCode = command:sub(16)
-            local func, err = VoidProtectionOn()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Started VoidProtection:\nlocalplayer is not vulnerable to voids"
-                end
-            else
-                result = "Started VoidProtection:\nlocalplayer is not vulnerable to voids"
-            end
-        elseif command:sub(1, 15) == "voidprotectionoff" then
-            local luaCode = command:sub(16)
-            local func, err = VoidProtectionOff()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Stopped VoidProtection:\nlocalplayer is now vulnerable to voids"
-                end
-            else
-                result = "Stopped VoidProtection:\nlocalplayer is now vulnerable to voids"
-            end
-        elseif command:sub(1, 15) == "vp" then
-            local luaCode = command:sub(16)
-            local func, err = VoidProtectionOn()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Started VoidProtection:\nlocalplayer is not vulnerable to voids:\n"
-                end
-            else
-                result = "Started VoidProtection:\nlocalplayer is not vulnerable to voids"
-            end
-        elseif command:sub(1, 15) == "dvp" then
-            local luaCode = command:sub(16)
-            local func, err = VoidProtectionOff()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Stopped VoidProtection:\nlocalplayer is now vulnerable to voids"
-                end
-            else
-                result = "Stopped VoidProtection:\nlocalplayer is now vulnerable to voids"
             end
         elseif command:sub(1, 10):lower() == "setuagrav " then
             local gravityValue = tonumber(command:sub(11))
@@ -4349,6 +4203,93 @@ end
             else
                 result = "Godmode Disabled:\n"
             end
+        elseif command:sub(1, 15) == "swordblox" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/SwordBlox/refs/heads/main/SB", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "swordblox loaded:\n"
+            end
+        elseif command:sub(1, 15) == "sb" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/SwordBlox/refs/heads/main/SB", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "swordblox loaded:\n"
+            end
+        elseif command:sub(1, 15) == "aca" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/Analyser/refs/heads/main/AAA", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Started AntiCheat Analyser:\nShowing all AC components"
+            end
+        elseif command:sub(1, 9):lower() == "sethealth" or command:sub(1, 5):lower() == "sethp" then
+            -- Extract value (handles both "sethealth 100" and "sethp 100")
+            local valueStr
+            if command:sub(1, 9):lower() == "sethealth" then
+                valueStr = command:sub(11) -- "sethealth 100" → "100"
+            else
+                valueStr = command:sub(7)  -- "sethp 100" → "100"
+            end
+            local value
+            
+            -- Check if the value is "math.huge" or a number
+            if valueStr:lower() == "math.huge" then
+                value = math.huge
+            else
+                -- Try to convert to number
+                value = tonumber(valueStr)
+            end
+            
+            -- Get the local player's character
+            local player = game:GetService("Players").LocalPlayer
+            if player and player.Character then
+                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    if value then
+                        humanoid.Health = value
+                        result = "Set health to " .. tostring(value)
+                    else
+                        result = "Invalid health value. Use a number or 'math.huge'"
+                    end
+                else
+                    result = "No Humanoid found in character"
+                end
+            else
+                result = "Player character not found"
+            end
+        elseif command:sub(1, 9):lower() == "consoleline" or command:sub(1, 5):lower() == "cline" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Consoleline/refs/heads/main/Cline"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "ConsoleLine Loaded:\nCool admin panel for pc users also added a toggle :)"
+            end
         elseif command:sub(1, 15) == "fakelag" then
             local luaCode = command:sub(16)
             local func, err = Fun()
@@ -4375,6 +4316,7 @@ end
             else
                 result = "FakeLag Stopped:\n"
             end
+
         elseif command:sub(1, 15) == "drawchat" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/AKadminlol/Chatdraw/refs/heads/main/Chattdraw"))()
@@ -5012,6 +4954,19 @@ end
             else
                 result = "Invalid gravity. Use: grav [number]"
             end
+        elseif command == "time" then
+        local time = os.date("*t")
+        result = string.format("Current time: %02d:%02d:%02d", time.hour, time.min, time.sec)
+        
+        elseif command == "date" then
+        local date = os.date("*t")
+        result = string.format("Today's date: %d/%d/%d", date.month, date.day, date.year)
+        elseif command == "ping" then
+        result = "Pong! TerminalCmd is running smoothly"
+        
+        elseif command == "fps" then
+        local fps = 1/game:GetService("RunService").RenderStepped:Wait()
+        result = string.format("Current FPS: %.1f", fps)
         elseif command:sub(1, 8) == "infjump" then
             local infiniteJumpEnabled = not _G.infiniteJumpEnabled
             _G.infiniteJumpEnabled = infiniteJumpEnabled
