@@ -406,7 +406,7 @@ freezeGame(freezeDuration)
 freezeGame(freezeDuration)
 
 task.wait()
-notify("TerminalCmd:System", "100 Cmds Are Loaded\ntype in [cmds] to continue\nScript Made By @hmmm5650", 3)
+notify("TerminalCmd:System", "177 Cmds Are Loaded\ntype in [cmds] to continue\nScript Made By @hmmm5650", 3)
 task.wait()
 pcall(function()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Credit-obfuscated-lol/refs/heads/main/OBFCredit", true))()
@@ -659,7 +659,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (2.5)" -- VZ
+collapsedLabel.Text = "TCmd (2.6)" -- VZ
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -2850,6 +2850,19 @@ end
                 result = "Blackhole Is Disabled:\n"
             end
         elseif command:sub(1, 18) == "cmds" then
+            local luaCode = command:sub(18)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Cmdspaneldbsnsbsm/refs/heads/main/ShowCmdsPanellollol123123", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Command panel Started:\nSearch For A Command"
+            end
+        elseif command:sub(1, 18) == "cmd" then
             local luaCode = command:sub(18)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Cmdspaneldbsnsbsm/refs/heads/main/ShowCmdsPanellollol123123", true))()
             if func then
