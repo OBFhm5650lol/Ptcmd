@@ -15,10 +15,28 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
 
+-- [[ THIS IS A SNIPPET ]] --
+
+-- Import the Library
+local fnl = loadstring(game:HttpGetAsync 'https://raw.githubusercontent.com/Code1Tech/utils/main/notification.lua')()
+
+-- Make a Notification function
+function notify(title, text, duration)
+  title = title or "Notification"
+  text = text or "No text provided."
+  duration = duration or 5
+  
+  fnl:MakeNotification({
+    Title = title,
+    Text = text,
+    Duration = duration
+  })
+end
+
 -- Constants
 local INTRO_TEXT = "TCMD"
 local WATERMARK_TEXT = "Made By hmmm5650"
-local INTRO_DURATION = 8 -- Duration of the entire intro animation in seconds
+local INTRO_DURATION = 6 -- Duration of the entire intro animation in seconds
 local PARTICLE_COUNT = 60 -- Increased particle count for richer background
 local PARTICLE_COLORS = {
     Color3.fromRGB(0, 100, 255),  -- Blue particles
@@ -369,7 +387,7 @@ task.wait()
 -- Place this in a LocalScript (for client-side freezing) or a regular Script (for server-side freezing)
 -- Recommended location: StarterPlayerScripts or StarterGui for LocalScript
 
-local freezeDuration = 3 -- seconds to freeze the game
+local freezeDuration = 1 -- seconds to freeze the game
 
 local function freezeGame(duration)
     local startTime = os.clock()
@@ -388,406 +406,7 @@ freezeGame(freezeDuration)
 freezeGame(freezeDuration)
 
 task.wait()
-
-local player = Players.LocalPlayer
-local gui = player:WaitForChild("PlayerGui")
-
--- Create ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "NotificationGui"
-screenGui.Parent = gui
-screenGui.ResetOnSpawn = false
-
--- Create a sound folder in SoundService for our notification sounds
-local notificationSounds = Instance.new("Folder")
-notificationSounds.Name = "NotificationSounds"
-notificationSounds.Parent = SoundService
-
--- Sound IDs and configurations
-local soundConfigs = {
-    NotificationAppear = {id = 3023237993, volume = 0.1},
-    NotificationDisappear = {id = 18595195017, volume = 0.1},
-    NotificationHover = {id = 7218169592, volume = 0.1},
-    NotificationClick = {id = 177266782, volume = 0.1},
-    NotificationPulse = {id = 10066936758, volume = 0.1}
-}
--- Function to play sounds
-local function playSound(soundName)
-    local config = soundConfigs[soundName]
-    if not config then return end
-    
-    local sound = Instance.new("Sound")
-    sound.SoundId = "rbxassetid://"..config.id
-    sound.Volume = config.volume
-    sound.Parent = notificationSounds
-    sound:Play()
-    
-    sound.Ended:Connect(function()
-        sound:Destroy()
-    end)
-end
-
--- Notification function
-function showNotification(title, message, duration, color)
-    duration = duration or 5
-    color = color or Color3.fromRGB(0, 170, 255)
-
-    -- Play appear sound
-    playSound("NotificationAppear")
-
-    -- Main frame
-    local frame = Instance.new("Frame")
-    frame.Name = "Notification"
-    frame.Size = UDim2.new(0.35, 0, 0, 70)
-    frame.Position = UDim2.new(1, 10, 0.85, 0)
-    frame.AnchorPoint = Vector2.new(1, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    frame.BackgroundTransparency = 0.8  -- Start more transparent for dramatic fade-in
-    frame.BorderSizePixel = 0
-    frame.Parent = screenGui
-    frame.ZIndex = 10
-    frame.ClipsDescendants = true  -- For the ripple effect
-
-    -- Shadow with initial scale for pop effect
-    local shadow = Instance.new("ImageLabel")
-    shadow.Name = "Shadow"
-    shadow.Image = "rbxassetid://1316045217"
-    shadow.ImageTransparency = 0.9  -- Start more transparent
-    shadow.ScaleType = Enum.ScaleType.Slice
-    shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-    shadow.Size = UDim2.new(1, 20, 1, 20)
-    shadow.Position = UDim2.new(0, -10, 0, -10)
-    shadow.BackgroundTransparency = 1
-    shadow.ZIndex = frame.ZIndex - 1
-    shadow.Parent = frame
-
-    -- Rounded corners
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = frame
-
-    -- Accent line
-    local accent = Instance.new("Frame")
-    accent.Name = "Accent"
-    accent.Size = UDim2.new(0, 0, 0, 2)  -- Start with 0 width for animation
-    accent.Position = UDim2.new(0, 0, 0, 0)
-    accent.BackgroundColor3 = color
-    accent.BorderSizePixel = 0
-    accent.ZIndex = frame.ZIndex + 1
-    accent.Parent = frame
-
-    -- Title with initial scale for bounce effect
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Name = "Title"
-    titleLabel.Text = title
-    titleLabel.TextColor3 = Color3.fromRGB(0, 255, 180)
-    titleLabel.TextTransparency = 1  -- Start invisible for fade-in
-    titleLabel.TextSize = 15
-    titleLabel.Font = Enum.Font.Code
-    titleLabel.Size = UDim2.new(1, -40, 0, 18)
-    titleLabel.Position = UDim2.new(0, 10, 0, 8)
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.ZIndex = frame.ZIndex + 1
-    titleLabel.Parent = frame
-
-    -- Message
-    local messageLabel = Instance.new("TextLabel")
-    messageLabel.Name = "Message"
-    messageLabel.Text = message
-    messageLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    messageLabel.TextTransparency = 1  -- Start invisible for fade-in
-    messageLabel.TextSize = 14
-    messageLabel.Font = Enum.Font.Code
-    messageLabel.Size = UDim2.new(1, -20, 0, 35)
-    messageLabel.Position = UDim2.new(0, 10, 0, 28)
-    messageLabel.TextXAlignment = Enum.TextXAlignment.Left
-    messageLabel.TextYAlignment = Enum.TextYAlignment.Top
-    messageLabel.BackgroundTransparency = 1
-    messageLabel.ZIndex = frame.ZIndex + 1
-    messageLabel.Parent = frame
-
-    -- Close button with hover effects
-    local closeButton = Instance.new("TextButton")
-    closeButton.Name = "CloseButton"
-    closeButton.Text = "×"
-    closeButton.TextColor3 = Color3.fromRGB(180, 180, 180)
-    closeButton.TextTransparency = 1  -- Start invisible for fade-in
-    closeButton.TextSize = 20
-    closeButton.Font = Enum.Font.Code
-    closeButton.Size = UDim2.new(0, 20, 0, 20)
-    closeButton.Position = UDim2.new(1, -25, 0, 6)
-    closeButton.BackgroundTransparency = 1
-    closeButton.ZIndex = frame.ZIndex + 1
-    closeButton.Parent = frame
-
-    -- Add a subtle glow effect
-    local glow = Instance.new("ImageLabel")
-    glow.Name = "Glow"
-    glow.Image = "rbxassetid://5028857084"
-    glow.ImageColor3 = color
-    glow.ImageTransparency = 1  -- Start invisible
-    glow.ScaleType = Enum.ScaleType.Slice
-    glow.SliceCenter = Rect.new(24, 24, 24, 24)
-    glow.Size = UDim2.new(1, 40, 1, 40)
-    glow.Position = UDim2.new(0.5, -20, 0.5, -20)
-    glow.AnchorPoint = Vector2.new(0.5, 0.5)
-    glow.BackgroundTransparency = 1
-    glow.ZIndex = frame.ZIndex - 1
-    glow.Parent = frame
-
-    -- Add a ripple effect for when the notification appears
-    local ripple = Instance.new("Frame")
-    ripple.Name = "Ripple"
-    ripple.Size = UDim2.new(0, 0, 0, 0)
-    ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
-    ripple.AnchorPoint = Vector2.new(0.5, 0.5)
-    ripple.BackgroundColor3 = Color3.new(1, 1, 1)
-    ripple.BackgroundTransparency = 0.9
-    ripple.ZIndex = frame.ZIndex + 2
-    local rippleCorner = Instance.new("UICorner")
-    rippleCorner.CornerRadius = UDim.new(1, 0)
-    rippleCorner.Parent = ripple
-    ripple.Parent = frame
-
-    -- Pulse animation for accent line
-    local pulseConnection
-    local function startPulse()
-        playSound("NotificationPulse")
-        
-        local targetColor = Color3.new(color.R * 1.2, color.G * 1.2, color.B * 1.2)
-        local pulseIn = TweenService:Create(accent, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut, -1, true), {
-            BackgroundColor3 = targetColor
-        })
-        pulseIn:Play()
-    end
-
-    -- Slide in animation with bounce
-    local slideIn = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Position = UDim2.new(1, -10, 0.85, 0),
-        BackgroundTransparency = 0.1
-    })
-    
-    -- Pop effect for shadow
-    local shadowPop = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        ImageTransparency = 0.6,
-        Size = UDim2.new(1, 30, 1, 30),
-        Position = UDim2.new(0, -15, 0, -15)
-    })
-    
-    -- Glow effect
-    local glowFadeIn = TweenService:Create(glow, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {
-        ImageTransparency = 0.8
-    })
-    
-    -- Ripple effect animation
-    local rippleExpand = TweenService:Create(ripple, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
-        Size = UDim2.new(2, 0, 2, 0),
-        BackgroundTransparency = 1
-    })
-    
-    -- Fade in content with slight delay between elements
-    local fadeIn = TweenService:Create(titleLabel, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
-        TextTransparency = 0
-    })
-    local fadeIn2 = TweenService:Create(messageLabel, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
-        TextTransparency = 0
-    })
-    local fadeIn3 = TweenService:Create(closeButton, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
-        TextTransparency = 0
-    })
-    
-    -- Accent line grow animation with overshoot
-    local accentGrow = TweenService:Create(accent, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(1, 0, 0, 2)
-    })
-    
-    -- Frame fade in with slight scale effect
-    local frameFadeIn = TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-        BackgroundTransparency = 0.1
-    })
-
-    -- Play animations in sequence with staggered timing
-    slideIn:Play()
-    shadowPop:Play()
-    rippleExpand:Play()
-    glowFadeIn:Play()
-    
-    -- Start ripple from center
-    ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
-    ripple.AnchorPoint = Vector2.new(0.5, 0.5)
-    
-    task.wait(0.1)
-    accentGrow:Play()
-    frameFadeIn:Play()
-    
-    task.wait(0.15)
-    fadeIn:Play()
-    
-    task.wait(0.05)
-    fadeIn2:Play()
-    
-    task.wait(0.05)
-    fadeIn3:Play()
-    
-    -- Start pulse animation after everything is shown
-    task.delay(0.6, startPulse)
-    
-    -- Hover effect for the entire notification
-    local hoverScale = 1.02
-    frame.MouseEnter:Connect(function()
-        playSound("NotificationHover")
-        
-        TweenService:Create(frame, TweenInfo.new(0.2), {
-            Size = UDim2.new(0.35 * hoverScale, 0, 0, 70 * hoverScale)
-        }):Play()
-        TweenService:Create(shadow, TweenInfo.new(0.2), {
-            Size = UDim2.new(1, 30 * hoverScale, 1, 30 * hoverScale),
-            Position = UDim2.new(0, -15 * hoverScale, 0, -15 * hoverScale)
-        }):Play()
-    end)
-    
-    frame.MouseLeave:Connect(function()
-        TweenService:Create(frame, TweenInfo.new(0.2), {
-            Size = UDim2.new(0.35, 0, 0, 70)
-        }):Play()
-        TweenService:Create(shadow, TweenInfo.new(0.2), {
-            Size = UDim2.new(1, 30, 1, 30),
-            Position = UDim2.new(0, -15, 0, -15)
-        }):Play()
-    end)
-
-    -- Close functionality with animations
-    local closing = false
-    local function close()
-        if closing then return end
-        closing = true
-        
-        playSound("NotificationDisappear")
-        
-        -- Stop pulse animation
-        if pulseConnection then
-            pulseConnection:Disconnect()
-        end
-        
-        -- Create a new ripple for close effect
-        local closeRipple = ripple:Clone()
-        closeRipple.BackgroundTransparency = 0.95
-        closeRipple.Size = UDim2.new(0, 0, 0, 0)
-        closeRipple.Position = UDim2.new(
-            UserInputService:GetMouseLocation().X / frame.AbsoluteSize.X,
-            0,
-            (UserInputService:GetMouseLocation().Y - frame.AbsolutePosition.Y) / frame.AbsoluteSize.Y,
-            0
-        )
-        closeRipple.AnchorPoint = Vector2.new(0.5, 0.5)
-        closeRipple.Parent = frame
-        
-        local rippleOut = TweenService:Create(closeRipple, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
-            Size = UDim2.new(2, 0, 2, 0),
-            BackgroundTransparency = 1
-        })
-        rippleOut:Play()
-        rippleOut.Completed:Connect(function()
-            closeRipple:Destroy()
-        end)
-        
-        -- Shake effect when closing
-        local shakeOffset = 5
-        for i = 1, 3 do
-            TweenService:Create(frame, TweenInfo.new(0.05, Enum.EasingStyle.Linear), {
-                Position = UDim2.new(1, -10 + shakeOffset, 0.85, 0)
-            }):Play()
-            task.wait(0.05)
-            TweenService:Create(frame, TweenInfo.new(0.05, Enum.EasingStyle.Linear), {
-                Position = UDim2.new(1, -10 - shakeOffset, 0.85, 0)
-            }):Play()
-            task.wait(0.05)
-            shakeOffset = shakeOffset * 0.6  -- Reduce shake amount each time
-        end
-        
-        -- Fade out content first
-        local fadeOut = TweenService:Create(titleLabel, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-            TextTransparency = 1
-        })
-        local fadeOut2 = TweenService:Create(messageLabel, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-            TextTransparency = 1
-        })
-        local fadeOut3 = TweenService:Create(closeButton, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-            TextTransparency = 1
-        })
-        
-        fadeOut:Play()
-        fadeOut2:Play()
-        fadeOut3:Play()
-        
-        -- Then slide out the frame
-        task.wait(0.15)
-        local slideOut = TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-            Position = UDim2.new(1, 10, 0.85, 0),
-            BackgroundTransparency = 0.8
-        })
-        
-        -- Shrink accent line
-        local accentShrink = TweenService:Create(accent, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-            Size = UDim2.new(0, 0, 0, 2)
-        })
-        
-        -- Shadow fade out and shrink
-        local shadowFadeOut = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-            ImageTransparency = 0.9,
-            Size = UDim2.new(1, 20, 1, 20),
-            Position = UDim2.new(0, -10, 0, -10)
-        })
-        
-        -- Glow fade out
-        local glowFadeOut = TweenService:Create(glow, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-            ImageTransparency = 1
-        })
-        
-        slideOut:Play()
-        accentShrink:Play()
-        shadowFadeOut:Play()
-        glowFadeOut:Play()
-        
-        slideOut.Completed:Wait()
-        frame:Destroy()
-    end
-
-    closeButton.MouseButton1Click:Connect(function()
-        playSound("NotificationClick")
-        close()
-    end)
-    
-    -- Enhanced close button hover effects
-    closeButton.MouseEnter:Connect(function()
-        playSound("NotificationHover")
-        
-        TweenService:Create(closeButton, TweenInfo.new(0.1), {
-            TextColor3 = Color3.new(1, 1, 1),
-            Rotation = 90,
-            TextSize = 22
-        }):Play()
-    end)
-    
-    closeButton.MouseLeave:Connect(function()
-        TweenService:Create(closeButton, TweenInfo.new(0.1), {
-            TextColor3 = Color3.fromRGB(180, 180, 180),
-            Rotation = 0,
-            TextSize = 20
-        }):Play()
-    end)
-
-    -- Auto-close after duration
-    task.delay(duration, function()
-        close()
-    end)
-end
-
--- Example usage with different animations
-showNotification("System Alert", "115 Cmds Are Loaded", 3, Color3.fromRGB(0, 200, 100))
-task.wait(4)
-showNotification("Welcome To TCMD >:33", "type in [cmds] btw :3", 3, Color3.fromRGB(0, 170, 255))
+notify("TerminalCmd:System", "100 Cmds Are Loaded\ntype in [cmds] to continue\nScript Made By @hmmm5650", 3)
 task.wait()
 pcall(function()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Credit-obfuscated-lol/refs/heads/main/OBFCredit", true))()
@@ -1039,7 +658,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (v2.3)"
+collapsedLabel.Text = "TCmd (2.4)" -- VZ
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -1198,119 +817,6 @@ end
 local function SetTpWalkSpeed(newSpeed)
     speeds = newSpeed
     print("TP Walk speed set to:", speeds)
-end
-
--- Fly Functionality
-local function Fly()
-    nowe = true
-
-    -- Disable animations and humanoid states
-    character.Animate.Disabled = true
-    for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
-        track:AdjustSpeed(0)
-    end
-
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
-    humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
-
-    -- Create BodyGyro and BodyVelocity for flying
-    local flyGyro = Instance.new("BodyGyro")
-    flyGyro.P = 9e4
-    flyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-    flyGyro.cframe = rootPart.CFrame
-    flyGyro.Parent = rootPart
-
-    local flyVelocity = Instance.new("BodyVelocity")
-    flyVelocity.velocity = Vector3.new(0, 0.1, 0)
-    flyVelocity.maxForce = Vector3.new(9e9, 9e9, 9e9)
-    flyVelocity.Parent = rootPart
-
-    humanoid.PlatformStand = true
-
-    -- Movement logic
-    local controlCooldown = 0
-    local lastLookVector = Vector3.new(0, 0, 0)
-
-    while nowe and humanoid.Health > 0 do
-        game:GetService("RunService").RenderStepped:Wait()
-
-        -- Get camera look vector
-        local camera = workspace.CurrentCamera
-        local lookVector = camera.CFrame.LookVector
-        lastLookVector = lookVector
-
-        -- Get player input
-        local moveDirection = Vector3.new(0, 0, 0)
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
-            moveDirection = moveDirection + lookVector
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then
-            moveDirection = moveDirection - lookVector
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then
-            moveDirection = moveDirection - camera.CFrame.RightVector
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then
-            moveDirection = moveDirection + camera.CFrame.RightVector
-        end
-
-        -- Normalize move direction
-        if moveDirection.Magnitude > 0 then
-            moveDirection = moveDirection.Unit
-        end
-
-        -- Apply movement
-        flyVelocity.velocity = moveDirection * speeds * 50
-
-        -- Update BodyGyro to match camera rotation
-        flyGyro.cframe = CFrame.new(rootPart.Position, rootPart.Position + lookVector)
-    end
-
-    -- Clean up
-    flyGyro:Destroy()
-    flyVelocity:Destroy()
-    humanoid.PlatformStand = false
-end
-
-local function UnFly()
-    nowe = false
-    tpwalking = false
-
-    -- Re-enable humanoid states
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying, true)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed, true)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, true)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, true)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
-    humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
-
-    -- Re-enable animations
-    character.Animate.Disabled = false
-    humanoid.PlatformStand = false
 end
 
 -- GravityInverter
@@ -1502,250 +1008,6 @@ function VoidProtectionOff()
         connection:Disconnect()
     end
     monitoring = false
-end
-
--- // Antifling \\ --
-local antiflingEnabled = false
-local connections = {}
-
-local function AFON()
-    if antiflingEnabled then return end
-    antiflingEnabled = true
-    
-    -- [ Services ] --
-    local Services = setmetatable({}, {__index = function(Self, Index)
-        local NewService = game.GetService(game, Index)
-        if NewService then
-            Self[Index] = NewService
-        end
-        return NewService
-    end})
-
-    -- [ LocalPlayer ] --
-    local LocalPlayer = Services.Players.LocalPlayer
-
-    -- // Functions \\ --
-    local function PlayerAdded(Player)
-        local Detected = false
-        local Character;
-        local PrimaryPart;
-
-        local function CharacterAdded(NewCharacter)
-            Character = NewCharacter
-            repeat
-                wait()
-                PrimaryPart = NewCharacter:FindFirstChild("HumanoidRootPart")
-            until PrimaryPart
-            Detected = false
-        end
-
-        CharacterAdded(Player.Character or Player.CharacterAdded:Wait())
-        local conn = Player.CharacterAdded:Connect(CharacterAdded)
-        table.insert(connections, conn)
-        
-        local heartbeatConn = Services.RunService.Heartbeat:Connect(function()
-            if (Character and Character:IsDescendantOf(workspace)) and (PrimaryPart and PrimaryPart:IsDescendantOf(Character)) then
-                if PrimaryPart.AssemblyAngularVelocity.Magnitude > 50 or PrimaryPart.AssemblyLinearVelocity.Magnitude > 100 then
-                    if Detected == false then
-                        game.StarterGui:SetCore("ChatMakeSystemMessage", {
-                            Text = "Fling Exploit detected, Player: " .. tostring(Player);
-                            Color = Color3.fromRGB(255, 200, 0);
-                        })
-                    end
-                    Detected = true
-                    for i,v in ipairs(Character:GetDescendants()) do
-                        if v:IsA("BasePart") then
-                            v.CanCollide = false
-                            v.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                            v.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                            v.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0)
-                        end
-                    end
-                    PrimaryPart.CanCollide = false
-                    PrimaryPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                    PrimaryPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                    PrimaryPart.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0)
-                end
-            end
-        end)
-        table.insert(connections, heartbeatConn)
-    end
-
-    -- // Event Listeners \\ --
-    for i,v in ipairs(Services.Players:GetPlayers()) do
-        if v ~= LocalPlayer then
-            PlayerAdded(v)
-        end
-    end
-    local playerAddedConn = Services.Players.PlayerAdded:Connect(PlayerAdded)
-    table.insert(connections, playerAddedConn)
-
-    local LastPosition = nil
-    local localHeartbeatConn = Services.RunService.Heartbeat:Connect(function()
-        pcall(function()
-            local PrimaryPart = LocalPlayer.Character.PrimaryPart
-            if PrimaryPart.AssemblyLinearVelocity.Magnitude > 250 or PrimaryPart.AssemblyAngularVelocity.Magnitude > 250 then
-                PrimaryPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                PrimaryPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                PrimaryPart.CFrame = LastPosition
-
-                game.StarterGui:SetCore("ChatMakeSystemMessage", {
-                    Text = "You were flung. Neutralizing velocity.";
-                    Color = Color3.fromRGB(255, 0, 0);
-                })
-            elseif PrimaryPart.AssemblyLinearVelocity.Magnitude < 50 or PrimaryPart.AssemblyAngularVelocity.Magnitude > 50 then
-                LastPosition = PrimaryPart.CFrame
-            end
-        end)
-    end)
-    table.insert(connections, localHeartbeatConn)
-end
-
-local function AFOFF()
-    if not antiflingEnabled then return end
-    antiflingEnabled = false
-    
-    -- Disconnect all connections
-    for _, connection in ipairs(connections) do
-        connection:Disconnect()
-    end
-    connections = {}
-    
-    game.StarterGui:SetCore("ChatMakeSystemMessage", {
-        Text = "Antifling disabled";
-        Color = Color3.fromRGB(0, 255, 0);
-    })
-end
-
--- Kill Variable
-local TargetPlayer = nil
-local LoopBringActive = false
-local originalTransparency = {}
-local bringConnection = nil
-
--- Add this function to your existing code
-function StartKillEffect(targetName)
-    -- Clean up any existing effect
-    if bringConnection then
-        bringConnection:Disconnect()
-        bringConnection = nil
-    end
-    
-    -- Find target player
-    TargetPlayer = nil
-    for _, player in pairs(game:GetService("Players"):GetPlayers()) do
-        if player ~= game:GetService("Players").LocalPlayer and player.Name:lower():find(targetName:lower()) then
-            TargetPlayer = player
-            break
-        end
-    end
-    
-    if not TargetPlayer then
-        return false, "Player not found!"
-    end
-    
-    local character = TargetPlayer.Character
-    local localCharacter = game:GetService("Players").LocalPlayer.Character
-    if not character or not character.PrimaryPart or not localCharacter or not localCharacter.PrimaryPart then
-        return false, "Invalid character(s)!"
-    end
-    
-    local originalPosition = character.PrimaryPart.Position
-    LoopBringActive = true
-    
-    -- Store original transparency
-    originalTransparency = {}
-    for _, part in pairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            originalTransparency[part] = part.Transparency
-            part.Transparency = 1
-        elseif part:IsA("ParticleEmitter") or part:IsA("Trail") then
-            part.Enabled = false
-        end
-    end
-    
-    local spinSpeed = 1e9
-    local angle = 0
-    local startTime = tick()
-    
-    bringConnection = game:GetService("RunService").Heartbeat:Connect(function(deltaTime)
-        if not LoopBringActive or tick() - startTime > 2 then -- 2 second duration
-            LoopBringActive = false
-            if bringConnection then
-                bringConnection:Disconnect()
-                bringConnection = nil
-            end
-            
-            -- Clean up
-            if character then
-                for part, transparency in pairs(originalTransparency) do
-                    if part and part.Parent then
-                        part.Transparency = transparency
-                    end
-                end
-                
-                for _, part in pairs(character:GetDescendants()) do
-                    if (part:IsA("ParticleEmitter") or part:IsA("Trail")) and part.Parent then
-                        part.Enabled = true
-                    end
-                end
-                
-                local forceField = character:FindFirstChild("ForceField")
-                if forceField then forceField:Destroy() end
-                
-                if character.PrimaryPart then
-                    character:SetPrimaryPartCFrame(CFrame.new(originalPosition))
-                end
-            end
-            return
-        end
-        
-        if character and character.PrimaryPart and localCharacter and localCharacter.PrimaryPart then
-            if not character:FindFirstChild("ForceField") then
-                local forceField = Instance.new("ForceField")
-                forceField.Visible = false
-                forceField.Parent = character
-            end
-            
-            angle = (angle + spinSpeed * deltaTime) % 360
-            character:SetPrimaryPartCFrame(
-                localCharacter.PrimaryPart.CFrame * 
-                CFrame.new(1.7, 4.7, -1.3) * 
-                CFrame.Angles(0, math.rad(angle), 0)
-            )
-        else
-            LoopBringActive = false
-        end
-    end)
-    
-    return true, "Executing killing on "..TargetPlayer.Name
-end
-
--- animation speed variable
-local AnimationSpeedController = {
-    CurrentSpeed = 1,
-    Enabled = false,
-    Running = false
-}
-
--- Main control function for animation speeds
-local function ControlAnimationSpeeds()
-    AnimationSpeedController.Running = true
-    
-    while AnimationSpeedController.Running and task.wait(0.1) do
-        local character = game.Players.LocalPlayer.Character
-        if not character then continue end
-        
-        local animController = character:FindFirstChildOfClass("Humanoid") or character:FindFirstChildOfClass("AnimationController")
-        if not animController then continue end
-        
-        -- Only adjust speeds if the controller is enabled
-        if AnimationSpeedController.Enabled then
-            for _, track in ipairs(animController:GetPlayingAnimationTracks()) do
-                track:AdjustSpeed(AnimationSpeedController.CurrentSpeed)
-            end
-        end
-    end
 end
 
 -- FakeLag variable
@@ -3807,7 +3069,7 @@ end
             end
         elseif command:sub(1, 15) == "fly" then
             local luaCode = command:sub(16)
-            local func, err = Fly()
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/F/refs/heads/main/F", true))()
             if func then
                 local success, execResult = pcall(func)
                 if success then
@@ -3816,48 +3078,9 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "Flying:\n"
+                result = "Started FlyGui:\n"
             end
-        elseif command:sub(1, 15) == "unfly" then
-            local luaCode = command:sub(16)
-            local func, err = UnFly()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Stopped Flying:\n"
-            end
-        elseif command:sub(1, 15) == "f" then
-            local luaCode = command:sub(16)
-            local func, err = Fly()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Flying:\n"
-            end
-        elseif command:sub(1, 15) == "uf" then
-            local luaCode = command:sub(16)
-            local func, err = UnFly()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Stopped Flying:\n"
-            end
-        elseif command:sub(1, 15) == "instantkill" then
+        elseif command:sub(1, 15) == "killgui" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/InstantKillig/refs/heads/main/Coolkillguithingy", true))()
             if func then
@@ -3868,20 +3091,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "(req, sword):\n"
-            end
-        elseif command:sub(1, 15) == "ikill" then
-            local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/InstantKillig/refs/heads/main/Coolkillguithingy", true))()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "(req, sword):\n"
+                result = "Started KillGui:\n(REQ, Sword Or Tool)"
             end
         elseif command:sub(1, 15) == "infoviewer" then
             local luaCode = command:sub(16)
@@ -4051,30 +3261,6 @@ end
                 end
             else
                 result = "Stopped VoidProtection:\nlocalplayer is now vulnerable to voids"
-            end
-        elseif command:sub(1, 8) == "uwuchat " then
-            local textToConvert = command:sub(9)
-            if textToConvert and #textToConvert > 0 then
-                local function uwuify(text)
-                    return text:gsub("[rl]", "w")
-                             :gsub("[RL]", "W")
-                             :gsub("n([aeiou])", "ny%1")
-                             :gsub("N([aeiouAEIOU])", "Ny%1")
-                             :gsub("ove", "uv")
-                             :gsub("th", "d")
-                             :gsub("!+", "~~")
-                             :gsub("%?+", "? owo")
-                             :gsub("%.+", " uwu")
-                end
-                
-                local suffixes = {" uwu", " >w<", " :3", " ^-^", " >-<", "~~"}
-                local uwuText = uwuify(textToConvert)..suffixes[math.random(#suffixes)]
-                
-                -- Send to actual chat
-                game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(uwuText, "All")
-                result = "Sent UwU message to chat!"
-            else
-                result = "Usage: uwuchat [text]\nExample: uwuchat Hello world!"
             end
         elseif command:sub(1, 10):lower() == "setuagrav " then
             local gravityValue = tonumber(command:sub(11))
@@ -4408,19 +3594,6 @@ end
             else
                 result = "ToolGiver Loaded:\n"
             end
-        elseif command:sub(1, 15) == "ringpartsv2" then
-            local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/SuperRingV2/refs/heads/main/SuperRing"))()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "RingPartsV2 Started:\nRingParts but with shapes"
-            end
         elseif command:sub(1, 15) == "rpv2" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/SuperRingV2/refs/heads/main/SuperRing"))()
@@ -4620,19 +3793,6 @@ end
             else
                 result = "Cannot reset view — no local character found"
             end
-        elseif command:sub(1, 15) == "fakechat" then
-            local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Obfffakechat/refs/heads/main/Fkaechat", true))()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Started FakeChat:\n"
-            end
         elseif command:sub(1, 15) == "energize" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Energize-10408"))()
@@ -4828,141 +3988,6 @@ end
             else
                 result = "Stopped AntiFling:\n"
             end
-        elseif command:lower():sub(1, 8) == "ringparts" or command:lower():sub(1, 2) == "rp" then
-            if not _G.RingParts then
-                _G.RingParts = {
-                    Enabled = false,
-                    Radius = 100,
-                    Strength = 1000,
-                    Parts = {},
-                    Connections = {}
-                }
-                local Players = game:GetService("Players")
-                local RunService = game:GetService("RunService")
-                local Workspace = game:GetService("Workspace")
-                local LocalPlayer = Players.LocalPlayer
-                if not getgenv().Network then
-                    getgenv().Network = {
-                        BaseParts = {},
-                        Velocity = Vector3.new(14.46262424, 14.46262424, 14.46262424)
-                    }
-                    Network.RetainPart = function(Part)
-                        if typeof(Part) == "Instance" and Part:IsA("BasePart") and Part:IsDescendantOf(Workspace) then
-                            table.insert(Network.BaseParts, Part)
-                            Part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
-                            Part.CanCollide = false
-                        end
-                    end
-                    local function EnablePartControl()
-                        LocalPlayer.ReplicationFocus = Workspace
-                        table.insert(_G.RingParts.Connections, RunService.Heartbeat:Connect(function()
-                            sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
-                            for _, Part in pairs(Network.BaseParts) do
-                                if Part:IsDescendantOf(Workspace) then
-                                    Part.Velocity = Network.Velocity
-                                end
-                            end
-                        end))
-                    end
-                    EnablePartControl()
-                end
-                local function RetainPart(part)
-                    if part:IsA("BasePart") and not part.Anchored and part:IsDescendantOf(Workspace) then
-                        if part:IsDescendantOf(LocalPlayer.Character) then return false end
-                        part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
-                        part.CanCollide = false
-                        return true
-                    end
-                    return false
-                end
-                local function AddPart(part)
-                    if RetainPart(part) and not table.find(_G.RingParts.Parts, part) then
-                        table.insert(_G.RingParts.Parts, part)
-                    end
-                end
-                local function RemovePart(part)
-                    local index = table.find(_G.RingParts.Parts, part)
-                    if index then
-                        table.remove(_G.RingParts.Parts, index)
-                    end
-                end
-                for _, part in pairs(Workspace:GetDescendants()) do
-                    AddPart(part)
-                end
-                table.insert(_G.RingParts.Connections, Workspace.DescendantAdded:Connect(AddPart))
-                table.insert(_G.RingParts.Connections, Workspace.DescendantRemoving:Connect(RemovePart))
-                table.insert(_G.RingParts.Connections, RunService.Heartbeat:Connect(function()
-                    if not _G.RingParts.Enabled then return end
-                    local character = LocalPlayer.Character
-                    if not character then return end
-                    local hrp = character:FindFirstChild("HumanoidRootPart")
-                    if not hrp then return end
-                    local center = hrp.Position
-                    local height = 100
-                    local rotationSpeed = 0.5
-                    for _, part in pairs(_G.RingParts.Parts) do
-                        if part.Parent and not part.Anchored then
-                            local pos = part.Position
-                            local distance = (Vector3.new(pos.X, center.Y, pos.Z) - center).Magnitude
-                            local angle = math.atan2(pos.Z - center.Z, pos.X - center.X)
-                            local newAngle = angle + math.rad(rotationSpeed)
-                            local targetPos = Vector3.new(
-                                center.X + math.cos(newAngle) * math.min(_G.RingParts.Radius, distance),
-                                center.Y + height * math.abs(math.sin((pos.Y - center.Y)/height)),
-                                center.Z + math.sin(newAngle) * math.min(_G.RingParts.Radius, distance)
-                            )
-                            local dir = (targetPos - pos).Unit
-                            part.Velocity = dir * _G.RingParts.Strength
-                        end
-                    end
-                end))
-            end
-            local args = {}
-            for word in command:gmatch("%S+") do
-                table.insert(args, word:lower())
-            end
-            if #args == 1 then
-                _G.RingParts.Enabled = not _G.RingParts.Enabled
-                return "RingParts " .. (_G.RingParts.Enabled and "enabled" or "disabled")
-            elseif args[2] == "radius" and tonumber(args[3]) then
-                _G.RingParts.Radius = math.clamp(tonumber(args[3]), 1, 10000)
-                return "RingParts radius set to " .. _G.RingParts.Radius
-            elseif args[2] == "speed" and tonumber(args[3]) then
-                _G.RingParts.Strength = math.clamp(tonumber(args[3]), 1, 100000)
-                return "RingParts speed set to " .. _G.RingParts.Strength
-            elseif args[2] == "status" then
-                return string.format([[
-        RingParts Status:
-        Enabled: %s
-        Radius: %d
-        Speed: %d
-        Active Parts: %d]], tostring(_G.RingParts.Enabled), _G.RingParts.Radius, _G.RingParts.Strength, #_G.RingParts.Parts)
-            else
-                return [[RingParts commands:
-        rp/ringparts - Toggle RingParts
-        rp/ringparts radius [value] - Set effect radius (1-10000)
-        rp/ringparts speed [value] - Set effect speed (1-100000)
-        rp/ringparts status - Show current settings]]
-            end
-        elseif command:lower():sub(1,5) == "kill " then
-            local playerName = command:sub(6):match("^%s*(.-)%s*$") -- Trim whitespace
-            if playerName and playerName ~= "" then
-                local success, execResult = pcall(function()
-                    return StartKillEffect(playerName)
-                end)
-                
-                if success then
-                    if execResult then
-                        result = execResult[2] -- Get the message from the tuple
-                    else
-                        result = "Kill effect started"
-                    end
-                else
-                    result = "Error: "..tostring(execResult)
-                end
-            else
-                result = "Please specify a player name (e.g. 'kill username')"
-            end
         elseif command:sub(1, 15) == "players" then
             local luaCode = command:sub(16)
             if luaCode and luaCode:len() > 0 then
@@ -5117,9 +4142,9 @@ end
             else
                 result = "AntiLag Started:\n(rec, FullBright)"
             end
-        elseif command:sub(1, 15) == "loopkill" then
+        elseif command:sub(1, 15) == "acr" then
             local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/2Loopkillsbnensnsns3838/refs/heads/main/Lkobf", true))()
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/ACR/refs/heads/main/Acr", true))()
             if func then
                 local success, execResult = pcall(func)
                 if success then
@@ -5128,20 +4153,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "LoopKill UI Started:\n"
-            end
-        elseif command:sub(1, 15) == "lkill" then
-            local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/2Loopkillsbnensnsns3838/refs/heads/main/Lkobf", true))()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "LoopKill UI Started:\n"
+                result = "AntiCheat Removal Loaded:\n"
             end
         elseif command:sub(1, 15) == "fakelag" then
             local luaCode = command:sub(16)
