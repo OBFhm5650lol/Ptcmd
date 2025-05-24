@@ -387,7 +387,7 @@ task.wait()
 -- Place this in a LocalScript (for client-side freezing) or a regular Script (for server-side freezing)
 -- Recommended location: StarterPlayerScripts or StarterGui for LocalScript
 
-local freezeDuration = 1 -- seconds to freeze the game
+local freezeDuration = 0.5 -- seconds to freeze the game
 
 local function freezeGame(duration)
     local startTime = os.clock()
@@ -516,6 +516,7 @@ local success, err = pcall(function()
         -- Create ScreenGui
         local screenGui = Instance.new("ScreenGui")
         screenGui.Name = "TerminalUI"
+        screenGui.ResetOnSpawn = true
         screenGui.Parent = playerGui
         print("ScreenGui created and parented")
 
@@ -1008,6 +1009,173 @@ function VoidProtectionOff()
         connection:Disconnect()
     end
     monitoring = false
+end
+
+-- Godmode variable
+
+
+-- Services
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- Config
+local MAX_HEALTH = math.huge * 2
+local HOTKEY = Enum.KeyCode.Z
+local PROTECT_FROM_FALL = true
+local PROTECT_FROM_INSTA_KILL = true
+
+-- State
+local godModeEnabled = false
+local connections = {}
+local originalWalkSpeed = 16
+
+-- Function: Setup protection
+local function setupCharacterProtection(character)
+	if not character then return end
+	local humanoid = character:WaitForChild("Humanoid", 5)
+	if not humanoid then return end
+
+	originalWalkSpeed = humanoid.WalkSpeed
+	humanoid.MaxHealth = MAX_HEALTH
+	humanoid.Health = MAX_HEALTH
+
+	table.insert(connections, humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+		if godModeEnabled and humanoid.Health < MAX_HEALTH then
+			humanoid.Health = MAX_HEALTH
+		end
+	end))
+
+	table.insert(connections, humanoid.Died:Connect(function()
+		if godModeEnabled then
+			task.wait(1)
+			character:BreakJoints()
+			task.wait(1)
+			local newChar = Players.LocalPlayer:LoadCharacter()
+			setupCharacterProtection(newChar)
+		end
+	end))
+
+	if PROTECT_FROM_FALL then
+		table.insert(connections, humanoid.StateChanged:Connect(function(_, newState)
+			if godModeEnabled and newState == Enum.HumanoidStateType.FallingDown then
+				humanoid:ChangeState(Enum.HumanoidStateType.Running)
+			end
+		end))
+	end
+end
+
+-- Function: Remove all protection
+local function clearProtection()
+	for _, conn in pairs(connections) do
+		conn:Disconnect()
+	end
+	connections = {}
+
+	local char = Players.LocalPlayer.Character
+	if char then
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.MaxHealth = 100
+			humanoid.Health = math.min(humanoid.Health, 100)
+			humanoid.WalkSpeed = originalWalkSpeed
+		end
+	end
+end
+
+-- Public API: Toggle Functions
+function GodModeOn()
+	godModeEnabled = true
+	setupCharacterProtection(Players.LocalPlayer.Character)
+	updateButton()
+end
+
+function GodModeOff()
+	godModeEnabled = false
+	clearProtection()
+	updateButton()
+end
+
+-- Services
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- Config
+local MAX_HEALTH = math.huge * 2
+local HOTKEY = Enum.KeyCode.Z
+local PROTECT_FROM_FALL = true
+local PROTECT_FROM_INSTA_KILL = true
+
+-- State
+local godModeEnabled = false
+local connections = {}
+local originalWalkSpeed = 16
+
+-- Function: Setup protection
+local function setupCharacterProtection(character)
+	if not character then return end
+	local humanoid = character:WaitForChild("Humanoid", 5)
+	if not humanoid then return end
+
+	originalWalkSpeed = humanoid.WalkSpeed
+	humanoid.MaxHealth = MAX_HEALTH
+	humanoid.Health = MAX_HEALTH
+
+	table.insert(connections, humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+		if godModeEnabled and humanoid.Health < MAX_HEALTH then
+			humanoid.Health = MAX_HEALTH
+		end
+	end))
+
+	table.insert(connections, humanoid.Died:Connect(function()
+		if godModeEnabled then
+			task.wait(1)
+			character:BreakJoints()
+			task.wait(1)
+			local newChar = Players.LocalPlayer:LoadCharacter()
+			setupCharacterProtection(newChar)
+		end
+	end))
+
+	if PROTECT_FROM_FALL then
+		table.insert(connections, humanoid.StateChanged:Connect(function(_, newState)
+			if godModeEnabled and newState == Enum.HumanoidStateType.FallingDown then
+				humanoid:ChangeState(Enum.HumanoidStateType.Running)
+			end
+		end))
+	end
+end
+
+-- Function: Remove all protection
+local function clearProtection()
+	for _, conn in pairs(connections) do
+		conn:Disconnect()
+	end
+	connections = {}
+
+	local char = Players.LocalPlayer.Character
+	if char then
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.MaxHealth = 100
+			humanoid.Health = math.min(humanoid.Health, 100)
+			humanoid.WalkSpeed = originalWalkSpeed
+		end
+	end
+end
+
+-- Public API: Toggle Functions
+function GodModeOn()
+	godModeEnabled = true
+	setupCharacterProtection(Players.LocalPlayer.Character)
+	updateButton()
+end
+
+function GodModeOff()
+	godModeEnabled = false
+	clearProtection()
+	updateButton()
 end
 
 -- FakeLag variable
@@ -4154,6 +4322,32 @@ end
                 end
             else
                 result = "AntiCheat Removal Loaded:\n"
+            end
+        elseif command:sub(1, 15) == "god" then
+            local luaCode = command:sub(16)
+            local func, err = GodModeOn()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Godmode Enabled:\nAny Cient-sided dmg won't hurt you"
+            end
+        elseif command:sub(1, 15) == "ungod" then
+            local luaCode = command:sub(16)
+            local func, err = GodModeOff()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Godmode Disabled:\n"
             end
         elseif command:sub(1, 15) == "fakelag" then
             local luaCode = command:sub(16)
