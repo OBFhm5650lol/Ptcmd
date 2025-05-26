@@ -406,7 +406,7 @@ freezeGame(freezeDuration)
 freezeGame(freezeDuration)
 
 task.wait()
-notify("TerminalCmd:System", "177 Cmds Are Loaded\ntype in [cmds] to continue\nScript Made By @hmmm5650", 3)
+notify("TerminalCmd:System", "180 Cmds Are Loaded\ntype in [cmds] to continue\nScript Made By @hmmm5650", 3)
 task.wait()
 pcall(function()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Credit-obfuscated-lol/refs/heads/main/OBFCredit", true))()
@@ -659,7 +659,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (2.6)" -- VZ
+collapsedLabel.Text = "TCmd (2.7)" -- VZ
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -3154,7 +3154,7 @@ end
             else
                 result = "laying:\n"
             end
-        elseif command:sub(1, 15) == "fly" then
+        elseif command:sub(1, 15) == "flygui" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/F/refs/heads/main/F", true))()
             if func then
@@ -4292,7 +4292,7 @@ end
             end
         elseif command:sub(1, 9):lower() == "consoleline" or command:sub(1, 5):lower() == "cline" then
             local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Consoleline/refs/heads/main/Cline"))()
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/igfrx/Consoleline/refs/heads/main/Cline", true))()
             if func then
                 local success, execResult = pcall(func)
                 if success then
@@ -4302,6 +4302,32 @@ end
                 end
             else
                 result = "ConsoleLine Loaded:\nCool admin panel for pc users also added a toggle :)"
+            end
+        elseif command:sub(1, 9):lower() == "quirkycmd" or command:sub(1, 5):lower() == "qcmd" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-QuirkyCMD-FE-admin-8667"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Loaded Quirky Cmd:\n[Ban] (REQ, Remotes)"
+            end
+        elseif command:sub(1, 9):lower() == "console" or command:sub(1, 5):lower() == "c" then
+            local luaCode = command:sub(16)
+            local func, err = game:GetService("StarterGui"):SetCore("DevConsoleVisible",true)
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "showing Console:\n"
             end
         elseif command:sub(1, 15) == "fakelag" then
             local luaCode = command:sub(16)
@@ -4395,87 +4421,6 @@ end
             else
                 result = "FakeLag Stopped:\n"
             end
-        elseif command:lower():sub(1, 8) == "aimassist" or command:lower():sub(1, 3) == "aim" then
-            local Players = game:GetService("Players")
-            local RunService = game:GetService("RunService")
-            local Camera = workspace.CurrentCamera
-            local LocalPlayer = Players.LocalPlayer
-            local Mouse = LocalPlayer:GetMouse()
-            _G.AimAssistSettings = _G.AimAssistSettings or {
-                Enabled = false,
-                FOV = 70,
-                ShowFOV = false,
-                Strength = 0.5,
-                FOVCircle = nil,
-                CurrentTarget = nil
-            }
-            -- FOV Circle Draw
-            if not _G.AimAssistSettings.FOVCircle then
-                local fovCircle = Drawing.new("Circle")
-                fovCircle.Color = Color3.fromRGB(255, 0, 0)
-                fovCircle.Thickness = 1
-                fovCircle.Filled = false
-                fovCircle.Transparency = 0.6
-                fovCircle.Visible = _G.AimAssistSettings.ShowFOV
-                _G.AimAssistSettings.FOVCircle = fovCircle
-                RunService.RenderStepped:Connect(function()
-                    if _G.AimAssistSettings.FOVCircle then
-                        local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-                        _G.AimAssistSettings.FOVCircle.Position = center
-                        _G.AimAssistSettings.FOVCircle.Radius = _G.AimAssistSettings.FOV
-                        _G.AimAssistSettings.FOVCircle.Visible = _G.AimAssistSettings.ShowFOV
-                    end
-                end)
-            end
-            -- Assist Logic
-            if not _G.AimAssistConnection then
-                _G.AimAssistConnection = RunService.RenderStepped:Connect(function()
-                    if not _G.AimAssistSettings.Enabled then return end
-                    local closest, closestDist = nil, _G.AimAssistSettings.FOV
-                    for _, player in ipairs(Players:GetPlayers()) do
-                        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-                            local head = player.Character.Head
-                            local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
-                            local dist = (Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-                            if onScreen and dist < closestDist then
-                                closest = head
-                                closestDist = dist
-                            end
-                        end
-                    end
-                    _G.AimAssistSettings.CurrentTarget = closest
-                    if closest then
-                        local direction = (closest.Position - Camera.CFrame.Position).Unit
-                        local newCF = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + direction)
-                        Camera.CFrame = Camera.CFrame:Lerp(newCF, _G.AimAssistSettings.Strength)
-                    end
-                end)
-            end
-            -- Command handler
-            local args = command:split(" ")
-            local sub = args[2]
-            local value = tonumber(args[3])
-            local res = ""
-            if not sub then
-                _G.AimAssistSettings.Enabled = not _G.AimAssistSettings.Enabled
-                res = "AimAssist " .. (_G.AimAssistSettings.Enabled and "Enabled" or "Disabled")
-            elseif sub == "fov" and value then
-                _G.AimAssistSettings.FOV = math.clamp(value, 10, 500)
-                res = "FOV set to " .. _G.AimAssistSettings.FOV
-            elseif sub == "showfov" then
-                _G.AimAssistSettings.ShowFOV = not _G.AimAssistSettings.ShowFOV
-                res = "FOV circle " .. (_G.AimAssistSettings.ShowFOV and "shown" or "hidden")
-            elseif sub == "strength" and value then
-                _G.AimAssistSettings.Strength = math.clamp(value, 0.1, 1)
-                res = "Aim strength set to " .. _G.AimAssistSettings.Strength
-            else
-                res = [[AimAssist Usage:
-        aimassist - toggle
-        aimassist fov [number] - set FOV size
-        aimassist strength [0.1 - 1] - set lock-on smoothness
-        aimassist showfov - toggle FOV visibility]]
-            end
-            return res
         elseif command:sub(1, 7) == "hitbox " then
             local valueStr = command:sub(8)
             local value = tonumber(valueStr)
