@@ -3154,7 +3154,7 @@ end
             else
                 result = "laying:\n"
             end
-        elseif command:sub(1, 15) == "flygui" then
+        elseif command:sub(1, 9):lower() == "flygui" or command:sub(1, 5):lower() == "fly" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/F/refs/heads/main/F", true))()
             if func then
