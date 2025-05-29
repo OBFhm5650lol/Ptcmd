@@ -4352,6 +4352,19 @@ end
             else
                 result = "Loaded Quirky Cmd:\n[Ban] (REQ, Remotes)"
             end
+        elseif command:sub(1, 9):lower() == "smol" or command:sub(1, 5):lower() == "unsmol" then
+            local luaCode = command:sub(16)
+            local func, err = smallhead(5)
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Secret Cmd lol:\nType in [re] to stop"
+            end
         elseif command:sub(1, 16):lower() == "animationspeed " or command:sub(1, 3):lower() == "as " then
             local speed = tonumber(command:match("%s(.+)"))
             if speed then
