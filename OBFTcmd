@@ -1,3 +1,5 @@
+pcall(function()
+
 -- Services
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
@@ -406,7 +408,7 @@ freezeGame(freezeDuration)
 freezeGame(freezeDuration)
 
 task.wait()
-notify("TerminalCmd:System", "180 Cmds Are Loaded\ntype in [cmds] to continue\nScript Made By @hmmm5650", 3)
+notify("TerminalCmd:System", "[🛠️] all Cmds Are Loaded\n[🗒️] type in [cmds] to continue\n[💬] Script Made By @hmmm5650", 3)
 task.wait()
 pcall(function()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Credit-obfuscated-lol/refs/heads/main/OBFCredit", true))()
@@ -659,7 +661,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (2.7)" -- VZ
+collapsedLabel.Text = "TCmd (2.8)" -- VZ
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -1110,7 +1112,128 @@ function GodModeOff()
 	updateButton()
 end
 
--- FakeLag variable
+-- Antifling Variable
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+local antiflingConnection
+
+afon = {}
+
+function afon.on(speaker)
+    if antiflingConnection then
+        antiflingConnection:Disconnect()
+        antiflingConnection = nil
+    end
+    antiflingConnection = RunService.Stepped:Connect(function()
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= speaker and player.Character then
+                for _, v in pairs(player.Character:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.CanCollide = false
+                    end
+                end
+            end
+        end
+    end)
+end
+
+function afon.off()
+    if antiflingConnection then
+        antiflingConnection:Disconnect()
+        antiflingConnection = nil
+    end
+end
+
+-- babify Variable
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local RootPart = Character:WaitForChild("HumanoidRootPart")
+
+-- Store original values
+local originalHipHeight = Humanoid.HipHeight
+local originalGravity = workspace.Gravity
+local noclipConnection = nil
+
+-- Enhanced noclip that works with extreme gravity
+local function enableNoclip()
+    if noclipConnection then return end
+    
+    -- First disable collisions on all parts
+    for _, part in ipairs(Character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+            part.Velocity = Vector3.new() -- Stop any movement
+        end
+    end
+    
+    -- Maintain noclip state
+    noclipConnection = RunService.Stepped:Connect(function()
+        for _, part in ipairs(Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+                part.AssemblyLinearVelocity = Vector3.new() -- Prevent any drifting
+            end
+        end
+    end)
+end
+
+local function disableNoclip()
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
+    end
+    
+    -- Restore collisions
+    for _, part in ipairs(Character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = true
+        end
+    end
+end
+
+-- Main shrinking function with no limits
+function smallhead(offset)
+    offset = offset or 5 -- Default offset
+    
+    -- Set extreme gravity only when smallhead is called
+    originalGravity = workspace.Gravity
+    workspace.Gravity = 999e999
+    
+    -- Enable noclip before making changes
+    enableNoclip()
+    
+    -- Apply the head shrink (no upper limit)
+    originalHipHeight = Humanoid.HipHeight
+    Humanoid.HipHeight = originalHipHeight - offset
+    
+    -- Force physics update
+    Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+    task.wait(0.1)
+    Humanoid:ChangeState(Enum.HumanoidStateType.Running)
+end
+
+function unsmallhead()
+    -- Restore original values
+    Humanoid.HipHeight = originalHipHeight
+    workspace.Gravity = originalGravity
+    disableNoclip()
+end
+
+-- Automatic reset on respawn
+LocalPlayer.CharacterAdded:Connect(function(char)
+    Character = char
+    Humanoid = char:WaitForChild("Humanoid")
+    RootPart = char:WaitForChild("HumanoidRootPart")
+    originalHipHeight = Humanoid.HipHeight
+    unsmallhead() -- Ensures clean state on respawn (restores gravity too)
+end)
+
+-- seizure variable
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -3167,7 +3290,7 @@ end
             else
                 result = "Started FlyGui:\n"
             end
-        elseif command:sub(1, 15) == "killgui" then
+        elseif command:sub(1, 9):lower() == "killgui" or command:sub(1, 5):lower() == "kill" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/InstantKillig/refs/heads/main/Coolkillguithingy", true))()
             if func then
@@ -3193,20 +3316,7 @@ end
             else
                 result = "I have Ur IP address:\n"
             end
-        elseif command:sub(1, 15) == "silverware" then
-            local luaCode = command:sub(16)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/SilverWare/refs/heads/main/SW", true))()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Started SilverWare:\n"
-            end
-        elseif command:sub(1, 15) == "sw" then
+        elseif command:sub(1, 9):lower() == "silverware" or command:sub(1, 5):lower() == "sw" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/SilverWare/refs/heads/main/SW", true))()
             if func then
@@ -3971,58 +4081,6 @@ end
                           .. "orbit speed [value] - Change orbit speed"
                 end
             end
-        elseif command:sub(1, 15) == "antifling" then
-            local luaCode = command:sub(16)
-            local func, err = AFON()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Started AntiFling:\n"
-            end
-        elseif command:sub(1, 15) == "af" then
-            local luaCode = command:sub(16)
-            local func, err = AFON()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Started AntiFling:\n"
-            end
-        elseif command:sub(1, 15) == "unantifling" then
-            local luaCode = command:sub(16)
-            local func, err = AFOFF()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Stopped AntiFling:\n"
-            end
-        elseif command:sub(1, 15) == "unaf" then
-            local luaCode = command:sub(16)
-            local func, err = AFOFF()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "Stopped AntiFling:\n"
-            end
         elseif command:sub(1, 15) == "players" then
             local luaCode = command:sub(16)
             if luaCode and luaCode:len() > 0 then
@@ -4316,6 +4374,32 @@ end
             else
                 result = "Loaded Quirky Cmd:\n[Ban] (REQ, Remotes)"
             end
+        elseif command:sub(1, 9):lower() == "touchfling" or command:sub(1, 5):lower() == "tf" then
+            local luaCode = command:sub(16)
+            local func, err = TFlingOn()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "TouchFling Enabled:\n"
+            end
+        elseif command:sub(1, 9):lower() == "untouchfling" or command:sub(1, 5):lower() == "untf" then
+            local luaCode = command:sub(16)
+            local func, err = TFlingOn()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "TouchFling Enabled:\n"
+            end
         elseif command:sub(1, 9):lower() == "console" or command:sub(1, 5):lower() == "c" then
             local luaCode = command:sub(16)
             local func, err = game:GetService("StarterGui"):SetCore("DevConsoleVisible",true)
@@ -4329,7 +4413,92 @@ end
             else
                 result = "showing Console:\n"
             end
-        elseif command:sub(1, 15) == "fakelag" then
+        elseif command:sub(1, 9):lower() == "antifling" or command:sub(1, 5):lower() == "af" then
+            local luaCode = command:sub(16)
+            local func, err = afon.on
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Antifling Func:\nEnabled " .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Enabled Antifling:\n"
+            end
+        elseif command:sub(1, 9):lower() == "unantifling" or command:sub(1, 5):lower() == "unaf" then
+            local luaCode = command:sub(16)
+            local func, err = afon.on
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Antifling Func:\nDestroyed" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Disabled Antifling:\n"
+            end
+        elseif command:lower():sub(1, 7) == "fakelag" or command:lower():sub(1, 4) == "flag" then
+            local args = command:split(" ")
+            local waitTime = tonumber(args[2])
+            if not waitTime then
+                result = "Usage: fakelag [wait time]\nExample: fakelag 0.05"
+            else
+                -- Disable any existing fakelag first
+                if _G.FakeLagEnabled then
+                    _G.FakeLagEnabled = false
+                    if _G.FakeLagThread then
+                        coroutine.close(_G.FakeLagThread)
+                        _G.FakeLagThread = nil
+                    end
+                    -- Ensure character is unanchored when disabling
+                    local player = game:GetService("Players").LocalPlayer
+                    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                        player.Character.HumanoidRootPart.Anchored = false
+                    end
+                end
+                
+                _G.FakeLagEnabled = true
+                _G.FakeLagWaitTime = waitTime
+                
+                _G.FakeLagThread = task.spawn(function()
+                    local Players = game:GetService("Players")
+                    local player = Players.LocalPlayer
+                    
+                    while _G.FakeLagEnabled do
+                        local char = player.Character
+                        if char and char:FindFirstChild("HumanoidRootPart") then
+                            char.HumanoidRootPart.Anchored = true
+                            task.wait(0.4) -- fixed freeze duration
+                            if char and char:FindFirstChild("HumanoidRootPart") then -- double check in case character changed
+                                char.HumanoidRootPart.Anchored = false
+                            end
+                        end
+                        task.wait(_G.FakeLagWaitTime) -- uses the variable wait time
+                    end
+                end)
+                
+                result = "FakeLag enabled with wait time: " .. tostring(waitTime)
+            end
+        -- Command: unfakelag or unflag
+        elseif command:lower() == "unfakelag" or command:lower() == "unflag" then
+            if _G.FakeLagEnabled then
+                _G.FakeLagEnabled = false
+                if _G.FakeLagThread then
+                    task.cancel(_G.FakeLagThread)
+                    _G.FakeLagThread = nil
+                end
+                -- Ensure character is unanchored
+                local player = game:GetService("Players").LocalPlayer
+                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    player.Character.HumanoidRootPart.Anchored = false
+                end
+                result = "FakeLag disabled"
+            else
+                result = "FakeLag was not active"
+            end
+        elseif command:sub(1, 15) == "seizure" then
             local luaCode = command:sub(16)
             local func, err = Fun()
             if func then
@@ -4340,9 +4509,9 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "FakeLag Started:\n"
+                result = "E:\n"
             end
-        elseif command:sub(1, 15) == "unfakelag" then
+        elseif command:sub(1, 15) == "seizure" then
             local luaCode = command:sub(16)
             local func, err = NoFun()
             if func then
@@ -4353,9 +4522,8 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "FakeLag Stopped:\n"
+                result = "E:\n"
             end
-
         elseif command:sub(1, 15) == "drawchat" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/AKadminlol/Chatdraw/refs/heads/main/Chattdraw"))()
@@ -4394,32 +4562,6 @@ end
                 end
             else
                 result = "someone recommended me this :/ :\n"
-            end
-        elseif command:sub(1, 15) == "flag" then
-            local luaCode = command:sub(16)
-            local func, err = Fun()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "FakeLag Started:\n"
-            end
-        elseif command:sub(1, 15) == "unflag" then
-            local luaCode = command:sub(16)
-            local func, err = NoFun()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "FakeLag Stopped:\n"
             end
         elseif command:sub(1, 7) == "hitbox " then
             local valueStr = command:sub(8)
@@ -4682,58 +4824,6 @@ end
                 end
             else
                 result = "Emitter Off:\n"
-            end
-        elseif command:sub(1, 15) == "enabletfling" then
-            local luaCode = command:sub(16)
-            local func, err = TFlingOn()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "TouchFling is enabled:\n"
-            end
-        elseif command:sub(1, 15) == "disabletfling" then
-            local luaCode = command:sub(16)
-            local func, err = TFlingOff()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "TouchFling is disabled:\n"
-            end
-        elseif command:sub(1, 15) == "etf" then
-            local luaCode = command:sub(16)
-            local func, err = TFlingOn()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "TouchFling is enabled:\n"
-            end
-        elseif command:sub(1, 15) == "disabletfling" then
-            local luaCode = command:sub(16)
-            local func, err = TFlingOff()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "TouchFling is disabled:\n"
             end
         elseif command:sub(1, 15) == "noclip" then
             local luaCode = command:sub(17)
@@ -5111,7 +5201,10 @@ if not success then
     createNotification("⚠️ Error Caught: " .. err, 5, "rbxassetid://1234567890") -- Replace with an appropriate image asset ID
 end
 end)
-wait()
+end)
+
+-- [ LoadsScriptResources ]
 pcall(function()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Credit-obfuscated-lol/refs/heads/main/OBFCredit", true))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/LoadResources/refs/heads/main/ResSourcesLoaderSource", true))()
+warn("StartedScript")
 end)
