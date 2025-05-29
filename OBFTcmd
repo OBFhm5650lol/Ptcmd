@@ -4135,28 +4135,6 @@ end
                 end
                 result = "Players online (" .. #usernames .. "):\n" .. table.concat(usernames, "\n")
             end
-        elseif command:lower():sub(1, 15) == "animationspeed " or command:lower():sub(1, 3) == "as " then
-            -- Extract speed value (works for both versions)
-            local speedValue
-            if command:lower():sub(1, 3) == "as " then
-                speedValue = tonumber(command:sub(4))
-            else
-                speedValue = tonumber(command:sub(16))
-            end
-            
-            if speedValue then
-                AnimationSpeedController.CurrentSpeed = speedValue
-                AnimationSpeedController.Enabled = true
-                
-                -- Start the controller if not already running
-                if not AnimationSpeedController.Running then
-                    task.spawn(ControlAnimationSpeeds)
-                end
-                
-                result = "(to reset type in 1) Animation speed set to " .. speedValue
-            else
-                result = "Invalid speed value. Please provide a number."
-            end
         elseif command:sub(1, 15) == "antikick" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/AntkickLol/refs/heads/main/Antikicklol"))()
@@ -4373,6 +4351,25 @@ end
                 end
             else
                 result = "Loaded Quirky Cmd:\n[Ban] (REQ, Remotes)"
+            end
+        elseif command:sub(1, 16):lower() == "animationspeed " or command:sub(1, 3):lower() == "as " then
+            local speed = tonumber(command:match("%s(.+)"))
+            if speed then
+                local player = game:GetService("Players").LocalPlayer
+                local character = player.Character or player.CharacterAdded:Wait()
+                task.spawn(function()
+                    while true do
+                        task.wait()
+                        local humanoid = character:FindFirstChildOfClass("Humanoid") or character:FindFirstChildOfClass("AnimationController")
+                        if not humanoid or not character then continue end
+                        for _, track in ipairs(humanoid:GetPlayingAnimationTracks()) do
+                            track:AdjustSpeed(speed)
+                        end
+                    end
+                end)
+                result = "[Set to 1 to reset] Animation speed set to: " .. speed
+            else
+                result = "Invalid animation speed. Usage: animationspeed [number]"
             end
         elseif command:sub(1, 9):lower() == "touchfling" or command:sub(1, 5):lower() == "tf" then
             local luaCode = command:sub(16)
