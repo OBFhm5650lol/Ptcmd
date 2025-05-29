@@ -4519,9 +4519,9 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "E:\n"
+                result = "UR HAVING A SEIZURE:\n"
             end
-        elseif command:sub(1, 15) == "seizure" then
+        elseif command:sub(1, 15) == "unseizure" then
             local luaCode = command:sub(16)
             local func, err = NoFun()
             if func then
@@ -4532,7 +4532,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "E:\n"
+                result = "Ur not having a seizure:\n"
             end
         elseif command:sub(1, 15) == "drawchat" then
             local luaCode = command:sub(16)
