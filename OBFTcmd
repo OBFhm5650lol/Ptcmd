@@ -1248,6 +1248,7 @@ local Character, Head, Humanoid
 local FastAnimationsEnabled = false
 local AnchoringEnabled = false
 local AnchorLoopThread, FastAnimThread
+local ActiveThreads = {}
 
 -- Initialize character
 local function InitializeCharacter()
@@ -1259,22 +1260,37 @@ end
 
 -- Fast animations (15x speed)
 local function FastAnimationsLoop()
-    while FastAnimationsEnabled and task.wait(0.1) do
-        if not Character then continue end
+    debugPrint("FastAnimationsLoop started")
+    while true do
+        if not FastAnimationsEnabled then break end
+        if not Character then 
+            task.wait(0.1)
+            continue 
+        end
         
         local animController = Character:FindFirstChildOfClass("Humanoid") or Character:FindFirstChildOfClass("AnimationController")
-        if not animController then continue end
+        if not animController then 
+            task.wait(0.1)
+            continue 
+        end
         
         for _, track in pairs(animController:GetPlayingAnimationTracks()) do
             track:AdjustSpeed(15)
         end
+        task.wait(0.1)
     end
+    debugPrint("FastAnimationsLoop ended")
 end
 
 -- Head Anchor/Unanchor loop with sit/stand
 local function AnchorHeadLoop()
-    while AnchoringEnabled and task.wait(0.1) do
-        if not Head or not Humanoid then continue end
+    debugPrint("AnchorHeadLoop started")
+    while true do
+        if not AnchoringEnabled then break end
+        if not Head or not Humanoid then 
+            task.wait(0.1)
+            continue 
+        end
         
         -- Toggle anchor and sit state
         Head.Anchored = not Head.Anchored
@@ -1285,12 +1301,17 @@ local function AnchorHeadLoop()
         end
         
         debugPrint("Head Anchored: " .. tostring(Head.Anchored) .. " | Sitting: " .. tostring(Humanoid.Sit))
+        task.wait(0.1)
     end
+    debugPrint("AnchorHeadLoop ended")
 end
 
 -- Start effects
 function Fun()
     if not Character then InitializeCharacter() end
+    
+    -- Cancel any existing threads first
+    NoFun()
     
     FastAnimationsEnabled = true
     AnchoringEnabled = true
@@ -1298,11 +1319,16 @@ function Fun()
     FastAnimThread = task.spawn(FastAnimationsLoop)
     AnchorLoopThread = task.spawn(AnchorHeadLoop)
     
+    -- Track active threads
+    ActiveThreads.FastAnim = FastAnimThread
+    ActiveThreads.Anchor = AnchorLoopThread
+    
     debugPrint("Started Fun() - Fast Animations + Head Anchor/Sit Loop")
 end
 
 -- Stop effects and reset
 function NoFun()
+    debugPrint("NoFun() called")
     FastAnimationsEnabled = false
     AnchoringEnabled = false
     
@@ -1320,9 +1346,17 @@ function NoFun()
     if Head then Head.Anchored = false end
     if Humanoid then Humanoid.Sit = false end
     
-    -- Cancel threads
-    if FastAnimThread then task.cancel(FastAnimThread) end
-    if AnchorLoopThread then task.cancel(AnchorLoopThread) end
+    -- Cancel threads with additional safety
+    for name, thread in pairs(ActiveThreads) do
+        if thread and task.getStatus(thread) == "running" then
+            task.cancel(thread)
+            debugPrint("Cancelled thread: " .. name)
+        end
+    end
+    
+    ActiveThreads = {}
+    FastAnimThread = nil
+    AnchorLoopThread = nil
     
     debugPrint("Stopped Fun() - Reset everything")
 end
@@ -1332,11 +1366,12 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
     Character = newChar
     InitializeCharacter()
     
-    if FastAnimationsEnabled then
-        FastAnimThread = task.spawn(FastAnimationsLoop)
-    end
-    if AnchoringEnabled then
-        AnchorLoopThread = task.spawn(AnchorHeadLoop)
+    if FastAnimationsEnabled or AnchoringEnabled then
+        -- Only restart if we're supposed to be running
+        NoFun() -- Clean up any existing state
+        if FastAnimationsEnabled or AnchoringEnabled then
+            Fun() -- Restart with new character
+        end
     end
 end)
 
