@@ -661,7 +661,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (2.9)" -- VZ
+collapsedLabel.Text = "TCmd (3.0)" -- VZ
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -1246,6 +1246,96 @@ function GodModeOff()
 	godModeEnabled = false
 	clearProtection()
 	updateButton()
+end
+
+-- rj func
+function Rj()
+    local TeleportService = game:GetService("TeleportService")
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+
+    -- Rejoin the same place and server
+    TeleportService:Teleport(game.PlaceId, LocalPlayer)
+end
+
+-- VoidProtection Variable
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local voidYLevel = -100 -- Adjust based on your game's void height
+local protectionEnabled = false
+local bounceForce = 10000   -- Initial upward force
+local maxBounceForce = 999e999
+local platformCheckRaycast = 5 -- Raycast distance to check for platforms below
+local inVoid = false -- Track if player is in void
+
+local function checkPlatformBelow()
+    if not humanoidRootPart then return false end
+    
+    local rayOrigin = humanoidRootPart.Position
+    local rayDirection = Vector3.new(0, -platformCheckRaycast, 0)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    
+    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    return raycastResult and raycastResult.Instance
+end
+
+local function applyBounce()
+    if not humanoidRootPart or not protectionEnabled then return end
+    
+    -- Apply upward velocity (like a bounce)
+    humanoidRootPart.AssemblyLinearVelocity = Vector3.new(0, bounceForce, 0)
+    
+    -- Increase bounce force for next time (capped at maxBounceForce)
+    bounceForce = math.min(bounceForce + 100, maxBounceForce)
+    
+    print("Bouncing with force:", bounceForce) -- Debug output
+end
+
+local function checkVoidPosition()
+    while protectionEnabled and humanoidRootPart do
+        local isInVoidNow = humanoidRootPart.Position.Y < voidYLevel
+        
+        -- Check for platform below regardless of void state
+        local onPlatform = checkPlatformBelow()
+        
+        if onPlatform then
+            -- Player landed on something, reset bounce force
+            bounceForce = 100
+            inVoid = false
+        elseif isInVoidNow then
+            -- Player is in void, apply bounce
+            if not inVoid then
+                -- First time entering void
+                bounceForce = 100
+                inVoid = true
+            else
+                -- Continuous bouncing in void
+                applyBounce()
+            end
+        else
+            inVoid = false
+        end
+        
+        task.wait(0.1) -- More efficient than wait()
+    end
+end
+
+function VoidProtectionOn()
+    if not protectionEnabled then
+        protectionEnabled = true
+        inVoid = false
+        bounceForce = 100 -- Reset force when turning on
+        checkVoidPosition()
+        print("Void Protection (Bounce Mode): ON")
+    end
+end
+
+function VoidProtectionOff()
+    protectionEnabled = false
+    print("Void Protection: OFF")
 end
 
 -- Antifling Variable
@@ -4369,6 +4459,19 @@ end
             else
                 result = "Godmode Disabled:\n"
             end
+        elseif command:sub(1, 9):lower() == "rejoin" or command:sub(1, 5):lower() == "rj" then
+            local luaCode = command:sub(16)
+            local func, err = Rj()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Rejoing...:\n"
+            end
         elseif command:sub(1, 15) == "swordblox" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/SwordBlox/refs/heads/main/SB", true))()
@@ -4455,6 +4558,45 @@ end
                 end
             else
                 result = "ConsoleLine Loaded:\nCool admin panel for pc users also added a toggle :)"
+            end
+        elseif command:sub(1, 15) == "toolcontrol" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/v0c0n1337/scripts/refs/heads/main/FE%20Tool%20control.txt"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "ToolControl Is Active:\nBest script i found so far :)"
+            end
+        elseif command:sub(1, 9):lower() == "voidprotection" or command:sub(1, 5):lower() == "voidp" then
+            local luaCode = command:sub(16)
+            local func, err = VoidProtectionOn()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "VoidProtectio Is Enabled:\n[May not be suitable for every game]"
+            end
+        elseif command:sub(1, 9):lower() == "unvoidprotection" or command:sub(1, 5):lower() == "unvoidp" then
+            local luaCode = command:sub(16)
+            local func, err = VoidProtectionOff()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "VoidProtectio Is Disabled:\n[May not be suitable for every game]"
             end
         elseif command:sub(1, 9):lower() == "quirkycmd" or command:sub(1, 5):lower() == "qcmd" then
             local luaCode = command:sub(16)
