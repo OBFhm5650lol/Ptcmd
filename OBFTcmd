@@ -17,6 +17,10 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
 
+-- CmdsVariables
+local backLoopConnection = nil
+local backAnimTrack = nil
+
 -- [[ THIS IS A SNIPPET ]] --
 
 -- Import the Library
@@ -4433,6 +4437,79 @@ end
             else
                 result = "AntiCheat Removal Loaded:\n"
             end
+        elseif command:sub(1, 5) == "bang " then
+            -- Stop any existing back loop first
+            if backLoopConnection then
+                backLoopConnection:Disconnect()
+                backLoopConnection = nil
+            end
+            if backAnimTrack then
+                backAnimTrack:Stop()
+                backAnimTrack = nil
+            end
+            
+            local targetName = command:sub(6)
+            local targetPlayer = game.Players:FindFirstChild(targetName) or findPlayer(targetName) -- Use your existing findPlayer function
+            
+            if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local localPlayer = game.Players.LocalPlayer
+                if localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                    -- Create animation instance
+                    local anim = Instance.new("Animation")
+                    anim.Name = "BackLoopAnimation"
+                    anim.AnimationId = "rbxassetid://148840371"
+                    
+                    -- Load and play animation
+                    backAnimTrack = localPlayer.Character.Humanoid:LoadAnimation(anim)
+                    backAnimTrack:Play()
+                    
+                    -- Start position loop
+                    backLoopConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                        if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and 
+                           localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                            local targetRoot = targetPlayer.Character.HumanoidRootPart
+                            local localRoot = localPlayer.Character.HumanoidRootPart
+                            
+                            -- Calculate position 3 studs behind target
+                            local offset = targetRoot.CFrame.lookVector * -1
+                            local newPosition = targetRoot.Position + offset
+                            
+                            -- Calculate CFrame to look at target
+                            local newCFrame = CFrame.new(newPosition, targetRoot.Position)
+                            
+                            -- Apply the new position
+                            localRoot.CFrame = newCFrame
+                        else
+                            -- Clean up if something went wrong
+                            if backLoopConnection then
+                                backLoopConnection:Disconnect()
+                                backLoopConnection = nil
+                            end
+                            if backAnimTrack then
+                                backAnimTrack:Stop()
+                                backAnimTrack = nil
+                            end
+                        end
+                    end)
+                    
+                    result = "Now looping behind "..targetPlayer.Name.." with animation"
+                else
+                    result = "Local player's character not fully loaded"
+                end
+            else
+                result = "Target player '"..targetName.."' not found or character not loaded"
+            end
+        elseif command:sub(1, 9) == "unbang" then
+            -- Stop the back loop
+            if backLoopConnection then
+                backLoopConnection:Disconnect()
+                backLoopConnection = nil
+            end
+            if backAnimTrack then
+                backAnimTrack:Stop()
+                backAnimTrack = nil
+            end
+            result = "Stopped banging"
         elseif command:sub(1, 15) == "god" then
             local luaCode = command:sub(16)
             local func, err = GodModeOn()
