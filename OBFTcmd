@@ -1087,6 +1087,23 @@ game.Players.LocalPlayer.Character.ChildAdded:Connect(function(child)
     end
 end)
 
+-- AutoUse Func
+local AutoS = {
+    on = function()
+        _G.AutoSwing = true
+        while _G.AutoSwing do
+            pcall(function()
+                game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Tool"):Activate()
+            end)
+            wait(0.1)
+        end
+    end,
+    
+    off = function()
+        _G.AutoSwing = false
+    end
+}
+
 -- Godmode variable
 -- Services
 local Players = game:GetService("Players")
@@ -4649,6 +4666,32 @@ end
             else
                 result = "ToolControl Is Active:\nBest script i found so far :)"
             end
+        elseif command:sub(1, 9):lower() == "autouse" or command:sub(1, 5):lower() == "au" then
+            local luaCode = command:sub(16)
+            local func, err = AutoS.on()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "AutoUse Tool Is Enabled:\n"
+            end
+        elseif command:sub(1, 9):lower() == "unautouse" or command:sub(1, 5):lower() == "unau" then
+            local luaCode = command:sub(16)
+            local func, err = AutoS.off()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "AutoUse Tool Is Disabled:\n"
+            end
         elseif command:sub(1, 9):lower() == "voidprotection" or command:sub(1, 5):lower() == "voidp" then
             local luaCode = command:sub(16)
             local func, err = VoidProtectionOn()
@@ -4660,7 +4703,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "VoidProtectio Is Enabled:\n[May not be suitable for every game]"
+                result = "VoidProtection Is Enabled:\n[May not be suitable for every game]"
             end
         elseif command:sub(1, 9):lower() == "unvoidprotection" or command:sub(1, 5):lower() == "unvoidp" then
             local luaCode = command:sub(16)
@@ -4673,7 +4716,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "VoidProtectio Is Disabled:\n[May not be suitable for every game]"
+                result = "VoidProtection Is Disabled:\n[May not be suitable for every game]"
             end
         elseif command:sub(1, 9):lower() == "quirkycmd" or command:sub(1, 5):lower() == "qcmd" then
             local luaCode = command:sub(16)
