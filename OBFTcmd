@@ -665,7 +665,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (3.0)" -- VZ
+collapsedLabel.Text = "TCmd (3.1)" -- VZ
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -1103,6 +1103,33 @@ local AutoS = {
         _G.AutoSwing = false
     end
 }
+
+function CreateTptool()
+local players = game:GetService("Players")
+local localPlayer = players.LocalPlayer
+local backpack = localPlayer.Backpack
+local mouse = localPlayer:GetMouse()
+
+local function isAlive(Player, headCheck)
+    local Player = Player or localPlayer
+    if Player and Player.Character and ((Player.Character:FindFirstChildOfClass("Humanoid")) and (Player.Character:FindFirstChild("HumanoidRootPart")) and (headCheck and Player.Character:FindFirstChild("Head") or not headCheck)) then
+        return true
+    else
+        return false
+    end
+end
+
+local tool = Instance.new("Tool")
+tool.Name = "TPTool"
+tool.Parent = backpack
+tool.RequiresHandle = false
+tool.Activated:Connect(function()
+	if isAlive() then
+		localPlayer.Character.HumanoidRootPart.CFrame = mouse.Hit + Vector3.new(0, 3, 0)
+	end
+end)
+
+end
 
 -- Godmode variable
 -- Services
@@ -4527,6 +4554,77 @@ end
                 backAnimTrack = nil
             end
             result = "Stopped banging"
+        elseif command:sub(1, 9):lower() == "toolesp" then
+            local toolEspEnabled = true
+            local toolBillboards = {}
+            
+            -- Function to create ESP for tools
+            local function createToolEsp(character)
+                if not character then return end
+                
+                for _, tool in pairs(character:GetChildren()) do
+                    if tool:IsA("Tool") and not toolBillboards[tool] then
+                        -- Highlight the tool
+                        local highlight = Instance.new("Highlight")
+                        highlight.Parent = tool
+                        highlight.FillTransparency = 0.5
+                        highlight.OutlineColor = Color3.new(1, 0, 0)
+                        
+                        -- Create billboard
+                        local billboard = Instance.new("BillboardGui")
+                        billboard.Size = UDim2.new(0, 200, 0, 50)
+                        billboard.StudsOffset = Vector3.new(0, 2, 0)
+                        billboard.Adornee = tool.Handle or tool:FindFirstChildWhichIsA("BasePart") or tool.PrimaryPart
+                        billboard.Parent = tool
+                        
+                        local label = Instance.new("TextLabel")
+                        label.Size = UDim2.new(1, 0, 1, 0)
+                        label.BackgroundTransparency = 1
+                        label.Text = tool.Name
+                        label.TextColor3 = Color3.new(1, 1, 1)
+                        label.TextScaled = true
+                        label.Parent = billboard
+                        
+                        toolBillboards[tool] = {highlight = highlight, billboard = billboard}
+                    end
+                end
+            end
+            
+            -- Connect to character added event
+            game:GetService("Players").PlayerAdded:Connect(function(player)
+                player.CharacterAdded:Connect(createToolEsp)
+            end)
+            
+            -- Process existing players
+            for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+                if player.Character then
+                    createToolEsp(player.Character)
+                end
+                player.CharacterAdded:Connect(createToolEsp)
+            end
+            
+            result = "Started ToolEsp"
+        elseif command:sub(1, 9):lower() == "untoolesp" then
+            for tool, espParts in pairs(toolBillboards or {}) do
+                if espParts.highlight then espParts.highlight:Destroy() end
+                if espParts.billboard then espParts.billboard:Destroy() end
+            end
+            toolBillboards = {}
+            toolEspEnabled = false
+            result = "Stopped ToolEsp"
+        elseif command:sub(1, 9):lower() == "unvcban" then
+            local luaCode = command:sub(16)
+            local func, err = game:GetService("VoiceChatService"):joinVoice()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Removed Vcban:\n"
+            end
         elseif command:sub(1, 15) == "god" then
             local luaCode = command:sub(16)
             local func, err = GodModeOn()
@@ -4540,6 +4638,32 @@ end
             else
                 result = "Godmode Enabled:\nAny Cient-sided dmg won't hurt you"
             end
+        elseif command:sub(1, 9):lower() == "adminabuse" or command:sub(1, 5):lower() == "aa" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/O/refs/heads/main/O", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Loaded HD Admin Abuser:\nOnly Works On Old Hd Admins Or Original"
+            end
+        elseif command:sub(1, 15) == "tptool" then
+            local luaCode = command:sub(16)
+            local func, err = CreateTptool()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Created TpTool:\n"
+            end
         elseif command:sub(1, 15) == "ungod" then
             local luaCode = command:sub(16)
             local func, err = GodModeOff()
@@ -4552,6 +4676,32 @@ end
                 end
             else
                 result = "Godmode Disabled:\n"
+            end
+        elseif command:sub(1, 9):lower() == "serverhopper" or command:sub(1, 5):lower() == "shopper" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/igfrxx/S/refs/heads/main/S", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Loaded ServerHopper:\n[WIP]"
+            end
+        elseif command:sub(1, 9):lower() == "fexpanel" or command:sub(1, 5):lower() == "f3xpanel" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/SkireScripts/F3X-Panel/main/Main.lua"))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Loaded F3X Panel:\n"
             end
         elseif command:sub(1, 9):lower() == "rejoin" or command:sub(1, 5):lower() == "rj" then
             local luaCode = command:sub(16)
@@ -4705,7 +4855,20 @@ end
             else
                 result = "VoidProtection Is Enabled:\n[May not be suitable for every game]"
             end
-        elseif command:sub(1, 9):lower() == "unvoidprotection" or command:sub(1, 5):lower() == "unvoidp" then
+        elseif command:sub(1, 9):lower() == "unvoidprotection" then
+            local luaCode = command:sub(16)
+            local func, err = VoidProtectionOff()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "VoidProtection Is Disabled:\n[May not be suitable for every game]"
+            end
+        elseif command:sub(1, 9):lower() == "unvoidp" then
             local luaCode = command:sub(16)
             local func, err = VoidProtectionOff()
             if func then
