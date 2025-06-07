@@ -4677,7 +4677,20 @@ end
             else
                 result = "Godmode Disabled:\n"
             end
-        elseif command:sub(1, 9):lower() == "serverhopper" or command:sub(1, 5):lower() == "shopper" then
+        elseif command:sub(1, 15) == "shopper" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/igfrxx/S/refs/heads/main/S", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "Loaded ServerHopper:\n[WIP]"
+            end
+        elseif command:sub(1, 15) == "serverhopper" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/igfrxx/S/refs/heads/main/S", true))()
             if func then
