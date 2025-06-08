@@ -42,7 +42,7 @@ end
 -- Constants
 local INTRO_TEXT = "TCMD"
 local WATERMARK_TEXT = "Made By hmmm5650"
-local INTRO_DURATION = 3 -- Duration of the entire intro animation in seconds
+local INTRO_DURATION = 2.5 -- Duration of the entire intro animation in seconds
 local PARTICLE_COUNT = 60 -- Increased particle count for richer background
 local PARTICLE_COLORS = {
     Color3.fromRGB(0, 100, 255),  -- Blue particles
@@ -4993,7 +4993,7 @@ end
             end
         elseif command:sub(1, 9):lower() == "untouchfling" or command:sub(1, 5):lower() == "untf" then
             local luaCode = command:sub(16)
-            local func, err = TFlingOn()
+            local func, err = TFlingOff()
             if func then
                 local success, execResult = pcall(func)
                 if success then
@@ -5002,7 +5002,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "TouchFling Enabled:\n"
+                result = "TouchFling Disabled:\n"
             end
         elseif command:sub(1, 9):lower() == "console" or command:sub(1, 5):lower() == "c" then
             local luaCode = command:sub(16)
