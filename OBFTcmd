@@ -42,7 +42,7 @@ end
 -- Constants
 local INTRO_TEXT = "TCMD"
 local WATERMARK_TEXT = "Made By hmmm5650"
-local INTRO_DURATION = 6 -- Duration of the entire intro animation in seconds
+local INTRO_DURATION = 3 -- Duration of the entire intro animation in seconds
 local PARTICLE_COUNT = 60 -- Increased particle count for richer background
 local PARTICLE_COLORS = {
     Color3.fromRGB(0, 100, 255),  -- Blue particles
