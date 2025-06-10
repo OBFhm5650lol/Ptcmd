@@ -393,7 +393,7 @@ task.wait()
 -- Place this in a LocalScript (for client-side freezing) or a regular Script (for server-side freezing)
 -- Recommended location: StarterPlayerScripts or StarterGui for LocalScript
 
-local freezeDuration = 0.5 -- seconds to freeze the game
+local freezeDuration = 0.2 -- seconds to freeze the game
 
 local function freezeGame(duration)
     local startTime = os.clock()
@@ -412,7 +412,7 @@ freezeGame(freezeDuration)
 freezeGame(freezeDuration)
 
 task.wait()
-notify("TerminalCmd:System", "[🛠️] all Cmds Are Loaded\n[🗒️] type in [cmds] to continue\n[💬] Script Made By @hmmm5650", 3)
+notify("TerminalCmd: System", "[🛠️] all Cmds Are Loaded\n[🗒️] type in [cmds] to continue\n[💬] Script Made By @hmmm5650", 3)
 task.wait()
 pcall(function()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/OBFhm5650lol/Credit-obfuscated-lol/refs/heads/main/OBFCredit", true))()
@@ -665,7 +665,7 @@ minimizeButtonCorner.Parent = minimizeButton
 -- Create Collapsed Label
 local collapsedLabel = Instance.new("TextLabel")
 collapsedLabel.Name = "CollapsedLabel"
-collapsedLabel.Text = "TCmd (3.1)" -- VZ
+collapsedLabel.Text = "TCmd (3.2)" -- VZ
 collapsedLabel.Size = UDim2.new(1, 0, 1, 0)
 collapsedLabel.Position = UDim2.new(0, -20, -0.02, 0)
 collapsedLabel.BackgroundTransparency = 1
@@ -3203,32 +3203,6 @@ end
             else
                 result = "HitbloxIsActive:\n"
             end
-        elseif command:sub(1, 13) == "dex" then
-            local luaCode = command:sub(14)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/peyton2465/Dex/master/out.lua"))()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "DexExplorerIsActive:\n"
-            end
-        elseif command:sub(1, 13) == "dexexplorer" then
-            local luaCode = command:sub(14)
-            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/peyton2465/Dex/master/out.lua"))()
-            if func then
-                local success, execResult = pcall(func)
-                if success then
-                    result = "Executed successfully:\n" .. tostring(execResult)
-                else
-                    result = "Execution error:\n"
-                end
-            else
-                result = "DexExplorerIsActive:\n"
-            end
         elseif command:sub(1, 13) == "iy" then
             local luaCode = command:sub(14)
             local func, err = loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
@@ -3240,7 +3214,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "InfyieldIsActive:\n"
+                result = "IY Started:\n"
             end
         elseif command:sub(1, 13) == "infiniteyield" then
             local luaCode = command:sub(14)
@@ -3253,7 +3227,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "InfyieldIsActive:\n"
+                result = "IY Started:\n"
             end
         elseif command:sub(1, 15) == "blackhole" then
             local luaCode = command:sub(16)
@@ -4625,6 +4599,56 @@ end
             else
                 result = "Removed Vcban:\n"
             end
+        elseif command:lower() == "invis" or command:lower() == "invisible" then
+            local player = game.Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local function setTransparency(character, transparency)
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") or part:IsA("Decal") then
+                        part.Transparency = transparency
+                    end
+                end
+            end
+            local function invis2()
+                local savedpos = character:WaitForChild("HumanoidRootPart").CFrame
+                task.wait()
+                character:MoveTo(Vector3.new(-25.95, 84, 3537.55))
+                task.wait(0.15)
+                local seat = Instance.new("Seat")
+                seat.Name = "invischair"
+                seat.Anchored = false
+                seat.CanCollide = false
+                seat.Transparency = 1
+                seat.Position = Vector3.new(-25.95, 84, 3537.55)
+                seat.Parent = workspace
+                local weld = Instance.new("Weld", seat)
+                weld.Part0 = seat
+                weld.Part1 = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+                task.wait()
+                seat.CFrame = savedpos
+                setTransparency(character, 0.5)
+            end
+            local success, err = pcall(invis2)
+            result = success and "Invisibility activated." or ("Error: " .. tostring(err))
+        elseif command:lower() == "vis" or command:lower() == "visible" then
+            local player = game.Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local function setTransparency(character, transparency)
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") or part:IsA("Decal") then
+                        part.Transparency = transparency
+                    end
+                end
+            end
+            local function vis2()
+                local invisChair = workspace:FindFirstChild("invischair")
+                if invisChair then
+                    invisChair:Destroy()
+                end
+                setTransparency(character, 0)
+            end
+            local success, err = pcall(vis2)
+            result = success and "Visibility restored." or ("Error: " .. tostring(err))
         elseif command:sub(1, 15) == "god" then
             local luaCode = command:sub(16)
             local func, err = GodModeOn()
@@ -4816,6 +4840,19 @@ end
             else
                 result = "ConsoleLine Loaded:\nCool admin panel for pc users also added a toggle :)"
             end
+        elseif command:sub(1, 9):lower() == "animsplayer" or command:sub(1, 5):lower() == "ap" then
+            local luaCode = command:sub(16)
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/igfrxx/Ap/refs/heads/main/Ap", true))()
+            if func then
+                local success, execResult = pcall(func)
+                if success then
+                    result = "Executed successfully:\n" .. tostring(execResult)
+                else
+                    result = "Execution error:\n"
+                end
+            else
+                result = "🎬Animsplayer Loaded:\Try All R6 Anims"
+            end
         elseif command:sub(1, 15) == "toolcontrol" then
             local luaCode = command:sub(16)
             local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/v0c0n1337/scripts/refs/heads/main/FE%20Tool%20control.txt"))()
@@ -4829,9 +4866,9 @@ end
             else
                 result = "ToolControl Is Active:\nBest script i found so far :)"
             end
-        elseif command:sub(1, 9):lower() == "autouse" or command:sub(1, 5):lower() == "au" then
+        elseif command:sub(1, 9):lower() == "dexexplorer" or command:sub(1, 5):lower() == "dex" then
             local luaCode = command:sub(16)
-            local func, err = AutoS.on()
+            local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
             if func then
                 local success, execResult = pcall(func)
                 if success then
@@ -4840,7 +4877,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "AutoUse Tool Is Enabled:\n"
+                result = "Dex Explorer Is Opened:\n"
             end
         elseif command:sub(1, 9):lower() == "unautouse" or command:sub(1, 5):lower() == "unau" then
             local luaCode = command:sub(16)
@@ -4905,7 +4942,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "Loaded Quirky Cmd:\n[Ban] (REQ, Remotes)"
+                result = "Loaded Quirky Cmd:\n[Ban] (REQ, Backdoor)"
             end
         elseif command:sub(1, 9):lower() == "players" or command:sub(1, 5):lower() == "plrs" then
             local luaCode = command:sub(16)
@@ -4933,7 +4970,7 @@ end
             else
                 result = "Secret Cmd lol:\nType in [re] to stop"
             end
-        elseif command:sub(1, 9):lower() == "invis" or command:sub(1, 5):lower() == "invisible" then
+        elseif command:sub(1, 9):lower() == "invis2" or command:sub(1, 5):lower() == "invisible2" then
             local luaCode = command:sub(16)
             local func, err = invis()
             if func then
@@ -4944,9 +4981,9 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "You are now invisible:\n[This Is Quite Buggy]"
+                result = "You are now invisible:\n[This Is OldInvis]"
             end
-        elseif command:sub(1, 9):lower() == "vis" or command:sub(1, 5):lower() == "visible" then
+        elseif command:sub(1, 9):lower() == "vis2" or command:sub(1, 5):lower() == "visible2" then
             local luaCode = command:sub(16)
             local func, err = vis()
             if func then
@@ -4957,7 +4994,7 @@ end
                     result = "Execution error:\n"
                 end
             else
-                result = "You are now visible:\n[This Is Quite Buggy]"
+                result = "You are now visible:\n[This Is OldInvis]"
             end
         elseif command:sub(1, 16):lower() == "animationspeed " or command:sub(1, 3):lower() == "as " then
             local speed = tonumber(command:match("%s(.+)"))
